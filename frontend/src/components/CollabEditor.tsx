@@ -205,7 +205,7 @@ export default function CollabEditor({
       Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Link.configure({ openOnClick: false }),
+      Link.configure({ openOnClick: true }),
       ResizableImage.configure({ inline: false, allowBase64: true }),
       Color,
       TextStyle,

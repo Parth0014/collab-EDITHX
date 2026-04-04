@@ -356,11 +356,11 @@ button {
 }
 .ProseMirror li[data-type="taskItem"] {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
 }
 .ProseMirror li[data-type="taskItem"] input[type="checkbox"] {
-  margin-top: 4px;
+  flex-shrink: 0;
   cursor: pointer;
   accent-color: var(--primary);
 }
