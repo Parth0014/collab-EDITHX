@@ -79,6 +79,14 @@ export default function EditorPage({ docId, onBack }: Props) {
   useEffect(() => {
     ydocRef.current.destroy();
     ydocRef.current = new Y.Doc();
+
+    // Initialize with a valid empty document structure
+    const yXmlFragment = ydocRef.current.getXmlFragment("shared");
+    if (yXmlFragment.length === 0) {
+      const paragraph = new Y.XmlElement("paragraph");
+      yXmlFragment.insert(0, [paragraph]);
+    }
+
     setYdocReady(false);
   }, [docId]);
 
@@ -129,7 +137,17 @@ export default function EditorPage({ docId, onBack }: Props) {
               decodeBase64ToUint8Array(state),
               REMOTE_ORIGIN,
             );
-          } catch {}
+          } catch (error) {
+            console.error("Failed to apply document state:", error);
+            // Recover by reinitializing with empty document
+            ydocRef.current.destroy();
+            ydocRef.current = new Y.Doc();
+            const yXmlFragment = ydocRef.current.getXmlFragment("shared");
+            if (yXmlFragment.length === 0) {
+              const paragraph = new Y.XmlElement("paragraph");
+              yXmlFragment.insert(0, [paragraph]);
+            }
+          }
         }
 
         if (Array.isArray(tasks)) {
@@ -154,7 +172,10 @@ export default function EditorPage({ docId, onBack }: Props) {
           decodeBase64ToUint8Array(base64Update),
           REMOTE_ORIGIN,
         );
-      } catch {}
+      } catch (error) {
+        console.error("Failed to apply remote changes:", error);
+        // Silently fail - the document will continue with last known good state
+      }
     });
     socket.on("room-users", (users: RoomUser[]) => setRoomUsers(users));
     socket.on("title-changed", (newTitle: string) => setTitle(newTitle));

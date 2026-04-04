@@ -276,6 +276,18 @@ export default function CollabEditor({
         },
       },
     },
+    onUpdate: ({ editor: ed }) => {
+      try {
+        // Validate the document structure on every update
+        ed.state.doc.content.forEach((node) => {
+          if (!node.type.isBlock && !node.type.isText) {
+            console.warn("Invalid node type detected:", node.type.name);
+          }
+        });
+      } catch (error) {
+        console.error("Document validation error:", error);
+      }
+    },
   });
 
   useEffect(() => {

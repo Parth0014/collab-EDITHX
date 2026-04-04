@@ -45,6 +45,18 @@ function AppInner() {
     } catch {}
   }, [activeDocId]);
 
+  // Auto-restore editor if doc was open on refresh
+  useEffect(() => {
+    if (page === "editor" && activeDocId && !user) {
+      // User is not loaded yet, wait for auth to complete
+      return;
+    }
+    if (page === "editor" && !activeDocId) {
+      // Page says editor but no doc, reset to dashboard
+      setPage("dashboard");
+    }
+  }, [page, activeDocId, user]);
+
   if (!isAuthReady) {
     return null;
   }
@@ -64,18 +76,6 @@ function AppInner() {
       />
     );
   }
-
-  // Auto-restore editor if doc was open on refresh
-  useEffect(() => {
-    if (page === "editor" && activeDocId && !user) {
-      // User is not loaded yet, wait for auth to complete
-      return;
-    }
-    if (page === "editor" && !activeDocId) {
-      // Page says editor but no doc, reset to dashboard
-      setPage("dashboard");
-    }
-  }, [page, activeDocId, user]);
 
   return (
     <Dashboard
