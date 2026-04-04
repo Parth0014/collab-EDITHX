@@ -1,0 +1,32 @@
+import axios from "axios";
+
+export const API_BASE = "http://localhost:3000/api";
+
+export const api = axios.create({ baseURL: API_BASE });
+
+api.interceptors.request.use((config) => {
+  const raw = localStorage.getItem("collab_auth");
+  if (!raw) return config;
+
+  try {
+    const parsed = JSON.parse(raw) as { token?: string };
+    if (parsed.token) {
+      config.headers = config.headers ?? {};
+      if (!config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${parsed.token}`;
+      }
+    }
+  } catch {
+    // Ignore malformed local storage data and continue without a token.
+  }
+
+  return config;
+});
+
+export function setAuthHeader(token: string | null) {
+  if (token) {
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common["Authorization"];
+  }
+}

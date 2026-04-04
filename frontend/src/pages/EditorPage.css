@@ -1,0 +1,167 @@
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+
+.editor-topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.editor-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editor-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.editor-title-input {
+  font-size: 14px;
+  font-weight: 600;
+  width: 260px;
+  padding: 4px 8px;
+}
+
+.editor-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.editor-title-editable {
+  cursor: text;
+}
+
+.editor-title-readonly {
+  cursor: default;
+}
+
+.editor-status-badge,
+.editor-access-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.editor-status-connecting {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.editor-status-connected {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.editor-status-disconnected {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.editor-access-badge {
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
+.editor-spacer {
+  flex: 1;
+}
+
+.editor-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.editor-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border: 2px solid var(--surface);
+}
+
+.editor-avatar-overlap {
+  margin-left: -8px;
+}
+
+.editor-avatar-tone-1 {
+  background: #3b82f6;
+}
+.editor-avatar-tone-2 {
+  background: #14b8a6;
+}
+.editor-avatar-tone-3 {
+  background: #ef4444;
+}
+.editor-avatar-tone-4 {
+  background: #f59e0b;
+}
+.editor-avatar-tone-5 {
+  background: #8b5cf6;
+}
+.editor-avatar-tone-6 {
+  background: #10b981;
+}
+
+.editor-more-users {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.editor-top-btn-active {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.editor-main-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor-main-area {
+  flex: 1;
+  overflow: auto;
+  padding: 40px 24px;
+}
+
+.editor-sheet {
+  max-width: 780px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  min-height: 80vh;
+  padding: 48px 64px;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .editor-main-area {
+    padding: 16px 10px;
+  }
+
+  .editor-sheet {
+    padding: 24px 16px;
+  }
+}
