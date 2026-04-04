@@ -473,6 +473,19 @@ export default function EditorPage({ docId, onBack }: Props) {
                         >
                           Deny
                         </button>
+                        <button
+                          className="btn-ghost btn-sm"
+                          onClick={() => {
+                            // Remove from list without taking action
+                            setHiddenRequests((h) =>
+                              h.filter(
+                                (id) => id !== pendingLoginRequest.requestId,
+                              ),
+                            );
+                          }}
+                        >
+                          Remove
+                        </button>
                       </div>
                     </div>
                   )}

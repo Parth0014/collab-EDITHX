@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import { usePopup } from "../context/PopupContext";
@@ -26,21 +26,6 @@ export default function Dashboard({ onOpenDoc }: Props) {
   const [invResp, setInvResp] = useState<{ [k: string]: "loading" | null }>({});
   const [copied, setCopied] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<
-    {
-      requestId: string;
-      deviceInfo: string;
-      createdAt: number;
-    }[]
-  >(() => {
-    try {
-      const raw = localStorage.getItem("collab_notifications");
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
-
   const [hiddenRequests, setHiddenRequests] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem("collab_hidden_requests");
@@ -49,6 +34,7 @@ export default function Dashboard({ onOpenDoc }: Props) {
       return [];
     }
   });
+  const notificationsRef = useRef<HTMLDivElement>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -79,16 +65,7 @@ export default function Dashboard({ onOpenDoc }: Props) {
     fetchAll();
   }, [fetchAll]);
 
-  // Persist notifications and hiddenRequests
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "collab_notifications",
-        JSON.stringify(notifications),
-      );
-    } catch {}
-  }, [notifications]);
-
+  // Persist hiddenRequests to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -98,14 +75,25 @@ export default function Dashboard({ onOpenDoc }: Props) {
     } catch {}
   }, [hiddenRequests]);
 
-  // When the server clears pendingLoginRequest, also remove any matching
-  // local notification/hidden marker so stale entries don't persist.
+  // Close notifications panel when clicking outside of it
   useEffect(() => {
-    if (!pendingLoginRequest) {
-      // remove any notifications/hidden state that reference a now-resolved id
-      setNotifications((n) => n.filter(() => true));
-    }
-  }, [pendingLoginRequest]);
+    if (!notificationsOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target as Node) &&
+        !(e.target as HTMLElement)
+          .closest("button")
+          ?.textContent?.includes("Notifications")
+      ) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notificationsOpen]);
 
   const createDoc = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,22 +263,12 @@ export default function Dashboard({ onOpenDoc }: Props) {
                 <button
                   className="btn-ghost btn-sm"
                   onClick={() => {
-                    // hide the live banner and store into notifications so user
-                    // can review later without being disturbed repeatedly
-                    setHiddenRequests((h) => {
-                      const next = Array.from(
+                    // Hide this request - it will show in the notifications panel
+                    setHiddenRequests((h) =>
+                      Array.from(
                         new Set([...h, pendingLoginRequest.requestId]),
-                      );
-                      return next;
-                    });
-                    setNotifications((n) => [
-                      ...n,
-                      {
-                        requestId: pendingLoginRequest.requestId,
-                        deviceInfo: pendingLoginRequest.deviceInfo,
-                        createdAt: Date.now(),
-                      },
-                    ]);
+                      ),
+                    );
                   }}
                 >
                   Hide
@@ -464,10 +442,11 @@ export default function Dashboard({ onOpenDoc }: Props) {
                 style={{ marginRight: 8 }}
               >
                 Notifications{" "}
-                {notifications.length > 0 ? `(${notifications.length})` : ""}
+                {hiddenRequests.length > 0 ? `(${hiddenRequests.length})` : ""}
               </button>
               {notificationsOpen && (
                 <div
+                  ref={notificationsRef}
                   style={{
                     position: "absolute",
                     right: 0,
@@ -481,76 +460,105 @@ export default function Dashboard({ onOpenDoc }: Props) {
                   }}
                 >
                   <div style={{ fontWeight: 700, marginBottom: 8 }}>
-                    Notifications
+                    Hidden Requests
                   </div>
-                  {notifications.length === 0 && (
-                    <div style={{ color: "#475569" }}>No notifications</div>
+                  {hiddenRequests.length === 0 && (
+                    <div style={{ color: "#475569" }}>No hidden requests</div>
                   )}
                   <div
                     style={{ display: "flex", flexDirection: "column", gap: 8 }}
                   >
-                    {notifications.map((n) => (
-                      <div
-                        key={n.requestId}
-                        style={{
-                          borderTop: "1px solid #E2E8F0",
-                          paddingTop: 8,
-                        }}
-                      >
-                        <div style={{ fontSize: 12, fontWeight: 700 }}>
-                          {n.deviceInfo}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#64748B" }}>
-                          {new Date(n.createdAt).toLocaleString()}
-                        </div>
-                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                          <button
-                            className="btn-primary btn-sm"
-                            onClick={() => {
-                              resolvePendingLoginRequest(
-                                n.requestId,
-                                "approve",
-                              );
-                              setNotifications((arr) =>
-                                arr.filter((x) => x.requestId !== n.requestId),
-                              );
-                              setHiddenRequests((h) =>
-                                h.filter((id) => id !== n.requestId),
-                              );
+                    {pendingLoginRequest &&
+                      hiddenRequests.includes(
+                        pendingLoginRequest.requestId,
+                      ) && (
+                        <div
+                          style={{
+                            borderTop: "1px solid #E2E8F0",
+                            paddingTop: 8,
+                          }}
+                        >
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>
+                            {pendingLoginRequest.deviceInfo}
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              marginTop: 8,
+                              flexWrap: "wrap",
                             }}
                           >
-                            Allow
-                          </button>
-                          <button
-                            className="btn-secondary btn-sm"
-                            onClick={() => {
-                              resolvePendingLoginRequest(n.requestId, "deny");
-                              setNotifications((arr) =>
-                                arr.filter((x) => x.requestId !== n.requestId),
-                              );
-                              setHiddenRequests((h) =>
-                                h.filter((id) => id !== n.requestId),
-                              );
-                            }}
-                          >
-                            Deny
-                          </button>
-                          <button
-                            className="btn-ghost btn-sm"
-                            onClick={() => {
-                              setNotifications((arr) =>
-                                arr.filter((x) => x.requestId !== n.requestId),
-                              );
-                              setHiddenRequests((h) =>
-                                h.filter((id) => id !== n.requestId),
-                              );
-                            }}
-                          >
-                            Remove
-                          </button>
+                            <button
+                              className="btn-primary btn-sm"
+                              onClick={() => {
+                                // Reveal the request
+                                setHiddenRequests((h) =>
+                                  h.filter(
+                                    (id) =>
+                                      id !== pendingLoginRequest.requestId,
+                                  ),
+                                );
+                                setNotificationsOpen(false);
+                              }}
+                            >
+                              Reveal
+                            </button>
+                            <button
+                              className="btn-secondary btn-sm"
+                              onClick={() => {
+                                // Allow from notification panel
+                                resolvePendingLoginRequest(
+                                  pendingLoginRequest.requestId,
+                                  "approve",
+                                );
+                                setHiddenRequests((h) =>
+                                  h.filter(
+                                    (id) =>
+                                      id !== pendingLoginRequest.requestId,
+                                  ),
+                                );
+                                setNotificationsOpen(false);
+                              }}
+                            >
+                              Allow
+                            </button>
+                            <button
+                              className="btn-secondary btn-sm"
+                              onClick={() => {
+                                // Deny from notification panel
+                                resolvePendingLoginRequest(
+                                  pendingLoginRequest.requestId,
+                                  "deny",
+                                );
+                                setHiddenRequests((h) =>
+                                  h.filter(
+                                    (id) =>
+                                      id !== pendingLoginRequest.requestId,
+                                  ),
+                                );
+                                setNotificationsOpen(false);
+                              }}
+                            >
+                              Deny
+                            </button>
+                            <button
+                              className="btn-ghost btn-sm"
+                              onClick={() => {
+                                // Remove from list without taking action
+                                setHiddenRequests((h) =>
+                                  h.filter(
+                                    (id) =>
+                                      id !== pendingLoginRequest.requestId,
+                                  ),
+                                );
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )}
                   </div>
                 </div>
               )}
