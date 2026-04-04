@@ -488,11 +488,13 @@ export default function EditorPage({ docId, onBack }: Props) {
                       <button
                         className="btn-ghost btn-sm"
                         onClick={() => {
+                          // Only remove the notification entry. Do NOT undo the
+                          // "hidden" state — removing the hidden flag here
+                          // causes the pending request UI to reappear, creating
+                          // a loop where Hide -> Notification -> Remove ->
+                          // re-show -> Hide ...
                           setNotifications((arr) =>
                             arr.filter((x) => x.requestId !== n.requestId),
-                          );
-                          setHiddenRequests((h) =>
-                            h.filter((id) => id !== n.requestId),
                           );
                         }}
                       >
