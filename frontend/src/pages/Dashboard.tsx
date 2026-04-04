@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
+import { usePopup } from "../context/PopupContext";
 import { Document, PendingInvitation } from "../types";
 
 interface Props {
@@ -8,7 +9,14 @@ interface Props {
 }
 
 export default function Dashboard({ onOpenDoc }: Props) {
-  const { user, logout } = useAuth();
+  const { showAlert, showConfirm } = usePopup();
+  const {
+    user,
+    logout,
+    login,
+    pendingLoginRequest,
+    resolvePendingLoginRequest,
+  } = useAuth();
   const [docs, setDocs] = useState<Document[]>([]);
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +25,13 @@ export default function Dashboard({ onOpenDoc }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [invResp, setInvResp] = useState<{ [k: string]: "loading" | null }>({});
   const [copied, setCopied] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -52,19 +67,23 @@ export default function Dashboard({ onOpenDoc }: Props) {
       setShowCreate(false);
       onOpenDoc(data.docId);
     } catch {
-      alert("Failed to create document");
+      await showAlert("Failed to create document", "Create Failed");
     } finally {
       setCreating(false);
     }
   };
 
   const deleteDoc = async (docId: string) => {
-    if (!confirm("Delete this document? This cannot be undone.")) return;
+    const confirmed = await showConfirm(
+      "Delete this document? This cannot be undone.",
+      "Delete Document",
+    );
+    if (!confirmed) return;
     try {
       await api.delete(`/documents/${docId}`);
       setDocs((d) => d.filter((doc) => doc.docId !== docId));
     } catch {
-      alert("Failed to delete document");
+      await showAlert("Failed to delete document", "Delete Failed");
     }
   };
 
@@ -78,7 +97,7 @@ export default function Dashboard({ onOpenDoc }: Props) {
       setInvitations((i) => i.filter((inv) => inv.docId !== docId));
       if (action === "accept") fetchAll();
     } catch {
-      alert("Failed to respond to invitation");
+      await showAlert("Failed to respond to invitation", "Request Failed");
     } finally {
       setInvResp((r) => ({ ...r, [docId]: null }));
     }
@@ -92,6 +111,43 @@ export default function Dashboard({ onOpenDoc }: Props) {
 
   const ownDocs = docs.filter((d) => d.ownerUsername === user?.username);
   const sharedDocs = docs.filter((d) => d.ownerUsername !== user?.username);
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      await showAlert(
+        "New password and confirm password do not match",
+        "Password Mismatch",
+      );
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const { data } = await api.post("/auth/change-password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      login(data.token, data.user);
+      setShowPasswordModal(false);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      await showAlert(
+        "Password changed successfully. Other sessions have been invalidated.",
+        "Password Updated",
+      );
+    } catch (err: any) {
+      await showAlert(
+        err?.response?.data?.error || "Failed to change password",
+        "Password Update Failed",
+      );
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   return (
     <div
@@ -111,6 +167,62 @@ export default function Dashboard({ onOpenDoc }: Props) {
           minHeight: "100vh",
         }}
       >
+        {pendingLoginRequest && (
+          <div
+            style={{
+              position: "fixed",
+              top: 16,
+              right: 16,
+              zIndex: 1000,
+              width: 380,
+              background: "#fff",
+              border: "2px solid #0F172A",
+              boxShadow: "6px 6px 0px #0F172A",
+              padding: 14,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "Space Grotesk, sans-serif",
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                color: "#0F172A",
+                marginBottom: 8,
+              }}
+            >
+              New Login Request
+            </div>
+            <div style={{ fontSize: 12, color: "#334155", marginBottom: 12 }}>
+              Device: {pendingLoginRequest.deviceInfo}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn-secondary btn-sm"
+                onClick={() =>
+                  resolvePendingLoginRequest(
+                    pendingLoginRequest.requestId,
+                    "deny",
+                  )
+                }
+              >
+                Keep This Device
+              </button>
+              <button
+                className="btn-primary btn-sm"
+                onClick={() =>
+                  resolvePendingLoginRequest(
+                    pendingLoginRequest.requestId,
+                    "approve",
+                  )
+                }
+              >
+                Allow Other Device
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Sidebar */}
         <aside
           style={{
@@ -208,6 +320,18 @@ export default function Dashboard({ onOpenDoc }: Props) {
                 add
               </span>
               New Document
+            </button>
+
+            <button
+              className="btn-secondary btn-sm"
+              style={{
+                width: "100%",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+              onClick={() => setShowPasswordModal(true)}
+            >
+              Change Password
             </button>
 
             {/* Logout */}
@@ -580,6 +704,91 @@ export default function Dashboard({ onOpenDoc }: Props) {
           </div>
         </main>
       </div>
+
+      {showPasswordModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1200,
+          }}
+        >
+          <form
+            onSubmit={changePassword}
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              background: "#fff",
+              border: "2px solid #0F172A",
+              boxShadow: "6px 6px 0px #0F172A",
+              padding: 20,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div className="section-heading">Change Password</div>
+            <input
+              type="password"
+              placeholder="Current password"
+              value={passwordForm.currentPassword}
+              onChange={(e) =>
+                setPasswordForm((p) => ({
+                  ...p,
+                  currentPassword: e.target.value,
+                }))
+              }
+              required
+            />
+            <input
+              type="password"
+              placeholder="New password"
+              value={passwordForm.newPassword}
+              onChange={(e) =>
+                setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
+              }
+              minLength={6}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) =>
+                setPasswordForm((p) => ({
+                  ...p,
+                  confirmPassword: e.target.value,
+                }))
+              }
+              minLength={6}
+              required
+            />
+
+            <div
+              style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}
+            >
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => setShowPasswordModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-primary btn-sm"
+                disabled={passwordSaving}
+              >
+                {passwordSaving ? "Saving..." : "Update Password"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

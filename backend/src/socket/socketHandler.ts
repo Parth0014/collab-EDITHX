@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import * as Y from "yjs";
 import jwt from "jsonwebtoken";
 import DocumentModel from "../models/Document";
+import UserModel from "../models/User";
 import { AuthPayload } from "../middleware/auth";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -41,12 +42,31 @@ function getUserColor(index: number): string {
 
 export function setupSocket(io: Server) {
   // Auth middleware for socket
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error("Authentication required"));
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as unknown as AuthPayload;
-      (socket as any).user = decoded;
+
+      const user = await UserModel.findById(decoded.userId).select(
+        "email username collabId activeSessionId tokenVersion",
+      );
+      if (
+        !user ||
+        user.activeSessionId !== decoded.sessionId ||
+        Number(user.tokenVersion || 0) !== Number(decoded.tokenVersion || 0)
+      ) {
+        return next(new Error("Session expired"));
+      }
+
+      (socket as any).user = {
+        userId: decoded.userId,
+        email: user.email,
+        username: user.username,
+        collabId: user.collabId,
+        sessionId: decoded.sessionId,
+        tokenVersion: Number(user.tokenVersion || 0),
+      } as AuthPayload;
       next();
     } catch {
       next(new Error("Invalid token"));

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api, setAuthHeader } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -8,6 +8,11 @@ export default function AuthPage() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<{
+    email: string;
+    password: string;
+    requestId: string;
+  } | null>(null);
 
   const handle = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -29,8 +34,80 @@ export default function AuthPage() {
       const { data } = await api.post(endpoint, payload);
       setAuthHeader(data.token);
       login(data.token, data.user);
+      setPendingApproval(null);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Something went wrong");
+      const payload = err?.response?.data;
+      if (mode === "login" && payload?.requiresApproval && payload?.requestId) {
+        setPendingApproval({
+          email: form.email,
+          password: form.password,
+          requestId: payload.requestId,
+        });
+        setError(
+          payload?.message || "Waiting for approval on your existing device...",
+        );
+      } else {
+        setError(payload?.error || "Something went wrong");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!pendingApproval) return;
+
+    let mounted = true;
+    const retry = async () => {
+      try {
+        const { data } = await api.post("/auth/login", {
+          email: pendingApproval.email,
+          password: pendingApproval.password,
+          requestId: pendingApproval.requestId,
+        });
+        if (!mounted) return;
+
+        if (data?.requiresApproval || !data?.token) {
+          return;
+        }
+
+        setAuthHeader(data.token);
+        login(data.token, data.user);
+        setPendingApproval(null);
+      } catch (err: any) {
+        if (!mounted) return;
+        const payload = err?.response?.data;
+        if (payload?.error?.includes("denied")) {
+          setError(payload.error);
+          setPendingApproval(null);
+        }
+      }
+    };
+
+    const id = window.setInterval(retry, 3500);
+    return () => {
+      mounted = false;
+      window.clearInterval(id);
+    };
+  }, [pendingApproval, login]);
+
+  const forceLogin = async () => {
+    if (!pendingApproval) return;
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await api.post("/auth/login", {
+        email: pendingApproval.email,
+        password: pendingApproval.password,
+        requestId: pendingApproval.requestId,
+        forceLogin: true,
+      });
+      setAuthHeader(data.token);
+      login(data.token, data.user);
+      setPendingApproval(null);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Failed to force login";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -147,6 +224,9 @@ export default function AuthPage() {
                 onClick={() => {
                   setMode(m);
                   setError("");
+                  if (m !== "login") {
+                    setPendingApproval(null);
+                  }
                 }}
                 style={{
                   flex: 1,
@@ -240,6 +320,40 @@ export default function AuthPage() {
                 }}
               >
                 ⚠ {error}
+              </div>
+            )}
+
+            {mode === "login" && pendingApproval && (
+              <div
+                style={{
+                  background: "#EEF5F8",
+                  border: "2px solid #0F172A",
+                  color: "#21515F",
+                  padding: "10px 14px",
+                  fontFamily: "Space Grotesk, sans-serif",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Waiting for approval from your current active device...
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={forceLogin}
+                    disabled={loading}
+                  >
+                    Force Login Instead
+                  </button>
+                </div>
               </div>
             )}
 

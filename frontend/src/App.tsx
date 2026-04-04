@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { PopupProvider } from "./context/PopupContext";
 import { setAuthHeader } from "./utils/api";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
@@ -66,8 +67,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
+    <PopupProvider>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
+    </PopupProvider>
   );
 }

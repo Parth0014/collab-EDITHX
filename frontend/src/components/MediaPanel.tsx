@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Socket } from "socket.io-client";
 import { api, API_BASE } from "../utils/api";
 import { Document, MediaAsset } from "../types";
+import { usePopup } from "../context/PopupContext";
 import "./MediaPanel.css";
 
 interface Props {
@@ -39,6 +40,7 @@ export default function MediaPanel({
   onClose,
   onInsertImage,
 }: Props) {
+  const { showAlert, showConfirm } = usePopup();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
@@ -80,7 +82,8 @@ export default function MediaPanel({
   };
 
   const deleteAsset = async (assetId: string) => {
-    if (!confirm("Delete this file?")) return;
+    const confirmed = await showConfirm("Delete this file?", "Delete Media");
+    if (!confirmed) return;
     try {
       await api.delete(`/media/${docId}/${assetId}`);
       onDocUpdate({
@@ -88,7 +91,7 @@ export default function MediaPanel({
         mediaAssets: (doc.mediaAssets || []).filter((a) => a.id !== assetId),
       });
     } catch {
-      alert("Failed to delete");
+      await showAlert("Failed to delete", "Delete Failed");
     }
   };
 

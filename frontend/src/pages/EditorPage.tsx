@@ -3,6 +3,7 @@ import { io, Socket } from "socket.io-client";
 import * as Y from "yjs";
 import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
+import { usePopup } from "../context/PopupContext";
 import { Document, RoomUser, AccessLevel } from "../types";
 import CollabEditor from "../components/CollabEditor.tsx";
 import MembersPanel from "../components/MembersPanel";
@@ -44,7 +45,9 @@ interface ExternalTask {
 }
 
 export default function EditorPage({ docId, onBack }: Props) {
-  const { token, user } = useAuth();
+  const { showAlert } = usePopup();
+  const { token, user, pendingLoginRequest, resolvePendingLoginRequest } =
+    useAuth();
   const [doc, setDoc] = useState<Document | null>(null);
   const [status, setStatus] = useState<
     "connecting" | "connected" | "disconnected"
@@ -82,7 +85,9 @@ export default function EditorPage({ docId, onBack }: Props) {
         setTitle(data.title);
         setAccessLevel(data.accessLevel);
       })
-      .catch(() => alert("Failed to load document"));
+      .catch(() => {
+        void showAlert("Failed to load document", "Load Failed");
+      });
   }, [docId]);
 
   useEffect(() => {
@@ -149,7 +154,10 @@ export default function EditorPage({ docId, onBack }: Props) {
     });
     socket.on("access-revoked", ({ collabId }: any) => {
       if (collabId === user?.collabId) {
-        alert("Your access to this document has been revoked.");
+        void showAlert(
+          "Your access to this document has been revoked.",
+          "Access Revoked",
+        );
         onBack();
       }
     });
@@ -172,7 +180,9 @@ export default function EditorPage({ docId, onBack }: Props) {
         );
       },
     );
-    socket.on("error", (msg: string) => alert(msg));
+    socket.on("error", (msg: string) => {
+      void showAlert(msg, "Realtime Error");
+    });
 
     return () => {
       window.clearTimeout(readyFallback);
@@ -247,6 +257,61 @@ export default function EditorPage({ docId, onBack }: Props) {
 
   return (
     <div className="editor-page">
+      {pendingLoginRequest && (
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 16,
+            zIndex: 1300,
+            width: 360,
+            background: "#fff",
+            border: "2px solid #0F172A",
+            boxShadow: "6px 6px 0px #0F172A",
+            padding: 12,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "Space Grotesk, sans-serif",
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              marginBottom: 8,
+            }}
+          >
+            New Login Request
+          </div>
+          <div style={{ fontSize: 12, color: "#334155", marginBottom: 10 }}>
+            Device: {pendingLoginRequest.deviceInfo}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() =>
+                resolvePendingLoginRequest(
+                  pendingLoginRequest.requestId,
+                  "deny",
+                )
+              }
+            >
+              Keep This Device
+            </button>
+            <button
+              className="btn-primary btn-sm"
+              onClick={() =>
+                resolvePendingLoginRequest(
+                  pendingLoginRequest.requestId,
+                  "approve",
+                )
+              }
+            >
+              Allow Other Device
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Top Bar ── */}
       <header className="editor-topbar">
         <button className="btn-ghost btn-sm editor-back-btn" onClick={onBack}>

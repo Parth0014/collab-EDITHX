@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Socket } from "socket.io-client";
 import { api } from "../utils/api";
 import { Document, Collaborator } from "../types";
+import { usePopup } from "../context/PopupContext";
 
 interface Props {
   doc: Document;
@@ -20,6 +21,7 @@ export default function MembersPanel({
   onDocUpdate,
   currentUserId,
 }: Props) {
+  const { showAlert, showConfirm } = usePopup();
   const [inviteId, setInviteId] = useState("");
   const [inviteAccess, setInviteAccess] = useState<"edit" | "view">("edit");
   const [inviteStatus, setInviteStatus] = useState<
@@ -65,7 +67,7 @@ export default function MembersPanel({
         ),
       });
     } catch {
-      alert("Failed to change access");
+      await showAlert("Failed to change access", "Access Update Failed");
     }
   };
 
@@ -74,7 +76,8 @@ export default function MembersPanel({
     const message = isRemovingSelf
       ? "Leave this document?"
       : `Remove ${collab.username}?`;
-    if (!confirm(message)) return;
+    const confirmed = await showConfirm(message, "Confirm Action");
+    if (!confirmed) return;
     try {
       await api.delete(
         `/documents/${doc.docId}/collaborators/${collab.collabId}`,
@@ -92,7 +95,10 @@ export default function MembersPanel({
         });
       }, 0);
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to remove access");
+      await showAlert(
+        err.response?.data?.error || "Failed to remove access",
+        "Remove Access Failed",
+      );
     }
   };
 
