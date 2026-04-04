@@ -217,7 +217,15 @@ export default function CollabEditor({
       handleDOMEvents: {
         click: (view, event) => {
           const target = event.target as HTMLElement;
-          if (target.tagName === "A" && target.getAttribute("href")) {
+          const mouseEvent = event as MouseEvent;
+          // Check if Ctrl (Windows/Linux) or Cmd (Mac) is pressed
+          const isCtrlOrCmd = mouseEvent.ctrlKey || mouseEvent.metaKey;
+
+          if (
+            isCtrlOrCmd &&
+            target.tagName === "A" &&
+            target.getAttribute("href")
+          ) {
             const href = target.getAttribute("href");
             if (href && !href.startsWith("#")) {
               event.preventDefault();
