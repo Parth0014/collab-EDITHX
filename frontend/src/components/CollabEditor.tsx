@@ -205,7 +205,7 @@ export default function CollabEditor({
       Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Link.configure({ openOnClick: true }),
+      Link.configure({ openOnClick: false }),
       ResizableImage.configure({ inline: false, allowBase64: true }),
       Color,
       TextStyle,
@@ -214,6 +214,20 @@ export default function CollabEditor({
     editable: canEdit,
     editorProps: {
       attributes: { class: "prose-editor" },
+      handleDOMEvents: {
+        click: (view, event) => {
+          const target = event.target as HTMLElement;
+          if (target.tagName === "A" && target.getAttribute("href")) {
+            const href = target.getAttribute("href");
+            if (href && !href.startsWith("#")) {
+              event.preventDefault();
+              window.open(href, "_blank");
+              return true;
+            }
+          }
+          return false;
+        },
+      },
     },
   });
 

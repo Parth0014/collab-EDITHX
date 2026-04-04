@@ -104,7 +104,30 @@ export default function Toolbar({ editor }: Props) {
 
   const addLink = () => {
     const url = prompt("Enter URL:");
-    if (url) editor.chain().focus().setLink({ href: url }).run();
+    if (url) {
+      // Add http:// if no protocol is specified
+      const finalUrl = /^https?:\/\//.test(url) ? url : `http://${url}`;
+      editor.chain().focus().setLink({ href: finalUrl }).run();
+    }
+  };
+
+  const addTask = () => {
+    const taskText = prompt("Enter task text:");
+    if (taskText !== null && taskText.trim()) {
+      // Create a new task item with the text
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          {
+            type: "taskItem",
+            attrs: { checked: false },
+            content: [{ type: "text", text: taskText }],
+          },
+          { type: "paragraph" },
+        ])
+        .run();
+    }
   };
 
   const resizeSelectedImage = (delta: number) => {
@@ -331,7 +354,7 @@ export default function Toolbar({ editor }: Props) {
       <ToolBtn
         title="Task list"
         active={editor.isActive("taskList")}
-        onClick={() => editor.chain().focus().toggleTaskList().run()}
+        onClick={addTask}
       >
         ☑ Tasks
       </ToolBtn>
