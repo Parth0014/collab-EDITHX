@@ -200,7 +200,22 @@ export default function CollabEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ history: false }),
+      StarterKit.configure({
+        history: false,
+        blockquote: {
+          HTMLAttributes: {
+            class: "blockquote-node",
+          },
+        },
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+        paragraph: {
+          HTMLAttributes: {
+            class: "paragraph-node",
+          },
+        },
+      }),
       Collaboration.configure({ document: ydoc }),
       CollaborationCursor.configure({
         provider: {
@@ -212,7 +227,7 @@ export default function CollabEditor({
         placeholder: "Start writing… Invite others with your CollabID",
       }),
       Underline,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextAlign.configure({ types: ["heading", "paragraph", "blockquote"] }),
       Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
