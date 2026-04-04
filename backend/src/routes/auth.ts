@@ -428,4 +428,34 @@ router.post(
   },
 );
 
+// ---------------------------------------------------------------------------
+// POST /api/auth/logout
+// Clears the server-side active session and invalidates existing tokens.
+// ---------------------------------------------------------------------------
+router.post(
+  "/logout",
+  authMiddleware,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const user = await UserModel.findById(req.user!.userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      // Clear server-side session state and bump token version so any
+      // previously issued token becomes invalid.
+      user.activeSessionId = undefined;
+      user.activeSessionLastSeenAt = undefined as any;
+      user.tokenVersion = Number(user.tokenVersion ?? 0) + 1;
+      user.pendingLogin = undefined;
+      user.loginAttemptCount = 0;
+      user.loginBlockedUntil = undefined as any;
+
+      await user.save();
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("[logout]", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  },
+);
+
 export default router;

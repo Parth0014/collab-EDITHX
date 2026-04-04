@@ -48,11 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("collab_auth", JSON.stringify({ token, user }));
   };
 
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    setPendingLoginRequest(null);
-    localStorage.removeItem("collab_auth");
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      // best-effort: even if server call fails, clear local state to avoid
+      // keeping a stale token in the client.
+      console.error("logout error", err);
+    } finally {
+      setToken(null);
+      setUser(null);
+      setPendingLoginRequest(null);
+      localStorage.removeItem("collab_auth");
+    }
   };
 
   const resolvePendingLoginRequest = async (
