@@ -48,6 +48,30 @@ export default function EditorPage({ docId, onBack }: Props) {
   const { showAlert } = usePopup();
   const { token, user, pendingLoginRequest, resolvePendingLoginRequest } =
     useAuth();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<
+    {
+      requestId: string;
+      deviceInfo: string;
+      createdAt: number;
+    }[]
+  >(() => {
+    try {
+      const raw = localStorage.getItem("collab_notifications");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [hiddenRequests, setHiddenRequests] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem("collab_hidden_requests");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const [doc, setDoc] = useState<Document | null>(null);
   const [status, setStatus] = useState<
     "connecting" | "connected" | "disconnected"
@@ -190,6 +214,25 @@ export default function EditorPage({ docId, onBack }: Props) {
     };
   }, [docId, token]);
 
+  // Persist notifications and hiddenRequests
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "collab_notifications",
+        JSON.stringify(notifications),
+      );
+    } catch {}
+  }, [notifications]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "collab_hidden_requests",
+        JSON.stringify(hiddenRequests),
+      );
+    } catch {}
+  }, [hiddenRequests]);
+
   useEffect(() => {
     const handler = (update: Uint8Array, origin: any) => {
       if (origin !== REMOTE_ORIGIN && socketRef.current?.connected) {
@@ -257,60 +300,79 @@ export default function EditorPage({ docId, onBack }: Props) {
 
   return (
     <div className="editor-page">
-      {pendingLoginRequest && (
-        <div
-          style={{
-            position: "fixed",
-            top: 16,
-            right: 16,
-            zIndex: 1300,
-            width: 360,
-            background: "#fff",
-            border: "2px solid #0F172A",
-            boxShadow: "6px 6px 0px #0F172A",
-            padding: 12,
-          }}
-        >
+      {pendingLoginRequest &&
+        !hiddenRequests.includes(pendingLoginRequest.requestId) && (
           <div
             style={{
-              fontFamily: "Space Grotesk, sans-serif",
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              marginBottom: 8,
+              position: "fixed",
+              top: 16,
+              right: 16,
+              zIndex: 1300,
+              width: 360,
+              background: "#fff",
+              border: "2px solid #0F172A",
+              boxShadow: "6px 6px 0px #0F172A",
+              padding: 12,
             }}
           >
-            New Login Request
-          </div>
-          <div style={{ fontSize: 12, color: "#334155", marginBottom: 10 }}>
-            Device: {pendingLoginRequest.deviceInfo}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              className="btn-secondary btn-sm"
-              onClick={() =>
-                resolvePendingLoginRequest(
-                  pendingLoginRequest.requestId,
-                  "deny",
-                )
-              }
+            <div
+              style={{
+                fontFamily: "Space Grotesk, sans-serif",
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                marginBottom: 8,
+              }}
             >
-              Keep This Device
-            </button>
-            <button
-              className="btn-primary btn-sm"
-              onClick={() =>
-                resolvePendingLoginRequest(
-                  pendingLoginRequest.requestId,
-                  "approve",
-                )
-              }
-            >
-              Allow Other Device
-            </button>
+              New Login Request
+            </div>
+            <div style={{ fontSize: 12, color: "#334155", marginBottom: 10 }}>
+              Device: {pendingLoginRequest.deviceInfo}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn-secondary btn-sm"
+                onClick={() =>
+                  resolvePendingLoginRequest(
+                    pendingLoginRequest.requestId,
+                    "deny",
+                  )
+                }
+              >
+                Keep This Device
+              </button>
+              <button
+                className="btn-primary btn-sm"
+                onClick={() =>
+                  resolvePendingLoginRequest(
+                    pendingLoginRequest.requestId,
+                    "approve",
+                  )
+                }
+              >
+                Allow Other Device
+              </button>
+              <button
+                className="btn-ghost btn-sm"
+                onClick={() => {
+                  setHiddenRequests((h) =>
+                    Array.from(new Set([...h, pendingLoginRequest.requestId])),
+                  );
+                  setNotifications((n) => [
+                    ...n,
+                    {
+                      requestId: pendingLoginRequest.requestId,
+                      deviceInfo: pendingLoginRequest.deviceInfo,
+                      createdAt: Date.now(),
+                    },
+                  ]);
+                }}
+              >
+                Hide
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* ── Top Bar ── */}
       <header className="editor-topbar">
@@ -352,6 +414,97 @@ export default function EditorPage({ docId, onBack }: Props) {
         <div className="editor-access-badge">{accessLevel}</div>
 
         <div className="editor-spacer" />
+
+        <div style={{ position: "relative" }}>
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => setNotificationsOpen((s) => !s)}
+            style={{ marginRight: 8 }}
+          >
+            Notifications{" "}
+            {notifications.length > 0 ? `(${notifications.length})` : ""}
+          </button>
+          {notificationsOpen && (
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: 36,
+                width: 360,
+                background: "#fff",
+                border: "2px solid #0F172A",
+                boxShadow: "6px 6px 0px #0F172A",
+                padding: 12,
+                zIndex: 1400,
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                Notifications
+              </div>
+              {notifications.length === 0 && (
+                <div style={{ color: "#475569" }}>No notifications</div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {notifications.map((n) => (
+                  <div
+                    key={n.requestId}
+                    style={{ borderTop: "1px solid #E2E8F0", paddingTop: 8 }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700 }}>
+                      {n.deviceInfo}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>
+                      {new Date(n.createdAt).toLocaleString()}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <button
+                        className="btn-primary btn-sm"
+                        onClick={() => {
+                          resolvePendingLoginRequest(n.requestId, "approve");
+                          setNotifications((arr) =>
+                            arr.filter((x) => x.requestId !== n.requestId),
+                          );
+                          setHiddenRequests((h) =>
+                            h.filter((id) => id !== n.requestId),
+                          );
+                        }}
+                      >
+                        Allow
+                      </button>
+                      <button
+                        className="btn-secondary btn-sm"
+                        onClick={() => {
+                          resolvePendingLoginRequest(n.requestId, "deny");
+                          setNotifications((arr) =>
+                            arr.filter((x) => x.requestId !== n.requestId),
+                          );
+                          setHiddenRequests((h) =>
+                            h.filter((id) => id !== n.requestId),
+                          );
+                        }}
+                      >
+                        Deny
+                      </button>
+                      <button
+                        className="btn-ghost btn-sm"
+                        onClick={() => {
+                          setNotifications((arr) =>
+                            arr.filter((x) => x.requestId !== n.requestId),
+                          );
+                          setHiddenRequests((h) =>
+                            h.filter((id) => id !== n.requestId),
+                          );
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Room users */}
         <div className="editor-avatars">

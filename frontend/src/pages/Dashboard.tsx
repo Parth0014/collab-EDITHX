@@ -25,6 +25,30 @@ export default function Dashboard({ onOpenDoc }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [invResp, setInvResp] = useState<{ [k: string]: "loading" | null }>({});
   const [copied, setCopied] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<
+    {
+      requestId: string;
+      deviceInfo: string;
+      createdAt: number;
+    }[]
+  >(() => {
+    try {
+      const raw = localStorage.getItem("collab_notifications");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [hiddenRequests, setHiddenRequests] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem("collab_hidden_requests");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -54,6 +78,34 @@ export default function Dashboard({ onOpenDoc }: Props) {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  // Persist notifications and hiddenRequests
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "collab_notifications",
+        JSON.stringify(notifications),
+      );
+    } catch {}
+  }, [notifications]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "collab_hidden_requests",
+        JSON.stringify(hiddenRequests),
+      );
+    } catch {}
+  }, [hiddenRequests]);
+
+  // When the server clears pendingLoginRequest, also remove any matching
+  // local notification/hidden marker so stale entries don't persist.
+  useEffect(() => {
+    if (!pendingLoginRequest) {
+      // remove any notifications/hidden state that reference a now-resolved id
+      setNotifications((n) => n.filter(() => true));
+    }
+  }, [pendingLoginRequest]);
 
   const createDoc = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,61 +219,85 @@ export default function Dashboard({ onOpenDoc }: Props) {
           minHeight: "100vh",
         }}
       >
-        {pendingLoginRequest && (
-          <div
-            style={{
-              position: "fixed",
-              top: 16,
-              right: 16,
-              zIndex: 1000,
-              width: 380,
-              background: "#fff",
-              border: "2px solid #0F172A",
-              boxShadow: "6px 6px 0px #0F172A",
-              padding: 14,
-            }}
-          >
+        {pendingLoginRequest &&
+          !hiddenRequests.includes(pendingLoginRequest.requestId) && (
             <div
               style={{
-                fontFamily: "Space Grotesk, sans-serif",
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "#0F172A",
-                marginBottom: 8,
+                position: "fixed",
+                top: 16,
+                right: 16,
+                zIndex: 1000,
+                width: 380,
+                background: "#fff",
+                border: "2px solid #0F172A",
+                boxShadow: "6px 6px 0px #0F172A",
+                padding: 14,
               }}
             >
-              New Login Request
-            </div>
-            <div style={{ fontSize: 12, color: "#334155", marginBottom: 12 }}>
-              Device: {pendingLoginRequest.deviceInfo}
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                className="btn-secondary btn-sm"
-                onClick={() =>
-                  resolvePendingLoginRequest(
-                    pendingLoginRequest.requestId,
-                    "deny",
-                  )
-                }
+              <div
+                style={{
+                  fontFamily: "Space Grotesk, sans-serif",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  color: "#0F172A",
+                  marginBottom: 8,
+                }}
               >
-                Keep This Device
-              </button>
-              <button
-                className="btn-primary btn-sm"
-                onClick={() =>
-                  resolvePendingLoginRequest(
-                    pendingLoginRequest.requestId,
-                    "approve",
-                  )
-                }
-              >
-                Allow Other Device
-              </button>
+                New Login Request
+              </div>
+              <div style={{ fontSize: 12, color: "#334155", marginBottom: 12 }}>
+                Device: {pendingLoginRequest.deviceInfo}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className="btn-secondary btn-sm"
+                  onClick={() =>
+                    resolvePendingLoginRequest(
+                      pendingLoginRequest.requestId,
+                      "deny",
+                    )
+                  }
+                >
+                  Keep This Device
+                </button>
+                <button
+                  className="btn-primary btn-sm"
+                  onClick={() =>
+                    resolvePendingLoginRequest(
+                      pendingLoginRequest.requestId,
+                      "approve",
+                    )
+                  }
+                >
+                  Allow Other Device
+                </button>
+                <button
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    // hide the live banner and store into notifications so user
+                    // can review later without being disturbed repeatedly
+                    setHiddenRequests((h) => {
+                      const next = Array.from(
+                        new Set([...h, pendingLoginRequest.requestId]),
+                      );
+                      return next;
+                    });
+                    setNotifications((n) => [
+                      ...n,
+                      {
+                        requestId: pendingLoginRequest.requestId,
+                        deviceInfo: pendingLoginRequest.deviceInfo,
+                        createdAt: Date.now(),
+                      },
+                    ]);
+                  }}
+                >
+                  Hide
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Sidebar */}
         <aside
@@ -381,6 +457,104 @@ export default function Dashboard({ onOpenDoc }: Props) {
               The Archive
             </h1>
             <div style={{ flex: 1 }} />
+            <div style={{ position: "relative" }}>
+              <button
+                className="btn-ghost btn-sm"
+                onClick={() => setNotificationsOpen((s) => !s)}
+                style={{ marginRight: 8 }}
+              >
+                Notifications{" "}
+                {notifications.length > 0 ? `(${notifications.length})` : ""}
+              </button>
+              {notificationsOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: 36,
+                    width: 360,
+                    background: "#fff",
+                    border: "2px solid #0F172A",
+                    boxShadow: "6px 6px 0px #0F172A",
+                    padding: 12,
+                    zIndex: 1200,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                    Notifications
+                  </div>
+                  {notifications.length === 0 && (
+                    <div style={{ color: "#475569" }}>No notifications</div>
+                  )}
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                  >
+                    {notifications.map((n) => (
+                      <div
+                        key={n.requestId}
+                        style={{
+                          borderTop: "1px solid #E2E8F0",
+                          paddingTop: 8,
+                        }}
+                      >
+                        <div style={{ fontSize: 12, fontWeight: 700 }}>
+                          {n.deviceInfo}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#64748B" }}>
+                          {new Date(n.createdAt).toLocaleString()}
+                        </div>
+                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                          <button
+                            className="btn-primary btn-sm"
+                            onClick={() => {
+                              resolvePendingLoginRequest(
+                                n.requestId,
+                                "approve",
+                              );
+                              setNotifications((arr) =>
+                                arr.filter((x) => x.requestId !== n.requestId),
+                              );
+                              setHiddenRequests((h) =>
+                                h.filter((id) => id !== n.requestId),
+                              );
+                            }}
+                          >
+                            Allow
+                          </button>
+                          <button
+                            className="btn-secondary btn-sm"
+                            onClick={() => {
+                              resolvePendingLoginRequest(n.requestId, "deny");
+                              setNotifications((arr) =>
+                                arr.filter((x) => x.requestId !== n.requestId),
+                              );
+                              setHiddenRequests((h) =>
+                                h.filter((id) => id !== n.requestId),
+                              );
+                            }}
+                          >
+                            Deny
+                          </button>
+                          <button
+                            className="btn-ghost btn-sm"
+                            onClick={() => {
+                              setNotifications((arr) =>
+                                arr.filter((x) => x.requestId !== n.requestId),
+                              );
+                              setHiddenRequests((h) =>
+                                h.filter((id) => id !== n.requestId),
+                              );
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div style={{ padding: "32px" }}>

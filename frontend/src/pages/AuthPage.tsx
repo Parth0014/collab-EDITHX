@@ -496,7 +496,7 @@ export default function AuthPage() {
                     disabled={loading}
                     style={{ flex: 1, justifyContent: "center" }}
                   >
-                    Force Login
+                    Sign In Anyway
                   </button>
                   <button
                     type="button"
