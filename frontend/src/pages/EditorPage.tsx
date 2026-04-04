@@ -82,6 +82,15 @@ export default function EditorPage({ docId, onBack }: Props) {
     setYdocReady(false);
   }, [docId]);
 
+  // Clear ghost notifications from localStorage on mount
+  useEffect(() => {
+    try {
+      // Remove old notification-related localStorage keys
+      localStorage.removeItem("collab_notifications");
+      localStorage.removeItem("notifications");
+    } catch {}
+  }, []);
+
   useEffect(() => {
     setExternalTasks([]);
     setTasksPanelOpen(false);
@@ -317,17 +326,6 @@ export default function EditorPage({ docId, onBack }: Props) {
               >
                 Allow Other Device
               </button>
-              <button
-                className="btn-ghost btn-sm"
-                onClick={() => {
-                  // Hide this request - it will show in the notifications panel
-                  setHiddenRequests((h) =>
-                    Array.from(new Set([...h, pendingLoginRequest.requestId])),
-                  );
-                }}
-              >
-                Hide
-              </button>
             </div>
           </div>
         )}
@@ -424,41 +422,9 @@ export default function EditorPage({ docId, onBack }: Props) {
                         }}
                       >
                         <button
-                          className="btn-primary btn-sm"
-                          onClick={() => {
-                            // Reveal the request
-                            setHiddenRequests((h) =>
-                              h.filter(
-                                (id) => id !== pendingLoginRequest.requestId,
-                              ),
-                            );
-                            setNotificationsOpen(false);
-                          }}
-                        >
-                          Reveal
-                        </button>
-                        <button
                           className="btn-secondary btn-sm"
                           onClick={() => {
-                            // Allow from notification panel
-                            resolvePendingLoginRequest(
-                              pendingLoginRequest.requestId,
-                              "approve",
-                            );
-                            setHiddenRequests((h) =>
-                              h.filter(
-                                (id) => id !== pendingLoginRequest.requestId,
-                              ),
-                            );
-                            setNotificationsOpen(false);
-                          }}
-                        >
-                          Allow
-                        </button>
-                        <button
-                          className="btn-secondary btn-sm"
-                          onClick={() => {
-                            // Deny from notification panel
+                            // Keep this device - deny from notification panel
                             resolvePendingLoginRequest(
                               pendingLoginRequest.requestId,
                               "deny",
@@ -471,12 +437,30 @@ export default function EditorPage({ docId, onBack }: Props) {
                             setNotificationsOpen(false);
                           }}
                         >
-                          Deny
+                          Keep This Device
+                        </button>
+                        <button
+                          className="btn-primary btn-sm"
+                          onClick={() => {
+                            // Allow other device - approve from notification panel
+                            resolvePendingLoginRequest(
+                              pendingLoginRequest.requestId,
+                              "approve",
+                            );
+                            setHiddenRequests((h) =>
+                              h.filter(
+                                (id) => id !== pendingLoginRequest.requestId,
+                              ),
+                            );
+                            setNotificationsOpen(false);
+                          }}
+                        >
+                          Allow Other Device
                         </button>
                         <button
                           className="btn-ghost btn-sm"
                           onClick={() => {
-                            // Remove from list without taking action
+                            // Mute - remove from notification list
                             setHiddenRequests((h) =>
                               h.filter(
                                 (id) => id !== pendingLoginRequest.requestId,
@@ -484,7 +468,7 @@ export default function EditorPage({ docId, onBack }: Props) {
                             );
                           }}
                         >
-                          Remove
+                          Mute
                         </button>
                       </div>
                     </div>
