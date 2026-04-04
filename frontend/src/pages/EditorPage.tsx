@@ -165,62 +165,60 @@ export default function EditorPage({ docId, onBack }: Props) {
     socket.on("title-changed", (newTitle: string) => setTitle(newTitle));
     socket.on("access-changed", ({ collabId, accessLevel: al }: any) => {
       if (collabId === user?.collabId) setAccessLevel(al);
-      setDoc((d) =>
-        d
-          ? {
-              ...d,
-              collaborators: d.collaborators.map((c) =>
-                c.collabId === collabId ? { ...c, accessLevel: al } : c,
-              ),
-            }
-          : d,
-      );
-    });
-    socket.on("access-revoked", ({ collabId }: any) => {
-      if (collabId === user?.collabId) {
-        void showAlert(
-          "Your access to this document has been revoked.",
-          "Access Revoked",
-        );
-        onBack();
-      }
-    });
-    socket.on("media-added", (asset: any) => {
-      setDoc((d) =>
-        d ? { ...d, mediaAssets: [...(d.mediaAssets || []), asset] } : d,
-      );
-    });
-    socket.on("task-added", (task: ExternalTask) => {
-      setExternalTasks((prev) => {
-        if (prev.some((t) => t.id === task.id)) return prev;
-        return [...prev, task];
-      });
-    });
-    socket.on(
-      "task-toggled",
-      ({ taskId, done }: { taskId: string; done: boolean }) => {
-        setExternalTasks((prev) =>
-          prev.map((task) => (task.id === taskId ? { ...task, done } : task)),
-        );
-      },
-    );
-    socket.on("error", (msg: string) => {
-      void showAlert(msg, "Realtime Error");
-    });
-
-    return () => {
-      window.clearTimeout(readyFallback);
-      socket.disconnect();
-    };
-  }, [docId, token]);
-
-  // Persist notifications and hiddenRequests
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "collab_notifications",
-        JSON.stringify(notifications),
-      );
+                {notifications.map((n) => (
+                  <div
+                    key={n.requestId}
+                    onClick={() => {
+                      // Reveal the pending request by clearing the hidden flag
+                      // and close the notifications panel.
+                      setHiddenRequests((h) => h.filter((id) => id !== n.requestId));
+                      setNotifications((arr) => arr.filter((x) => x.requestId !== n.requestId));
+                      setNotificationsOpen(false);
+                    }}
+                    style={{ borderTop: "1px solid #E2E8F0", paddingTop: 8, cursor: "pointer" }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700 }}>{n.deviceInfo}</div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>
+                      {new Date(n.createdAt).toLocaleString()}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <button
+                        className="btn-primary btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resolvePendingLoginRequest(n.requestId, "approve");
+                          setNotifications((arr) => arr.filter((x) => x.requestId !== n.requestId));
+                          setHiddenRequests((h) => h.filter((id) => id !== n.requestId));
+                        }}
+                      >
+                        Allow
+                      </button>
+                      <button
+                        className="btn-secondary btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resolvePendingLoginRequest(n.requestId, "deny");
+                          setNotifications((arr) => arr.filter((x) => x.requestId !== n.requestId));
+                          setHiddenRequests((h) => h.filter((id) => id !== n.requestId));
+                        }}
+                      >
+                        Deny
+                      </button>
+                      <button
+                        className="btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Remove the notification entry only; do NOT change
+                          // the hiddenRequests list so the pending card remains
+                          // hidden until explicitly revealed.
+                          setNotifications((arr) => arr.filter((x) => x.requestId !== n.requestId));
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
     } catch {}
   }, [notifications]);
 
