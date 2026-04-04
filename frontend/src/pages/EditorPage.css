@@ -1,11 +1,14 @@
+/* EditorPage.css — fully responsive */
+
 .editor-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: #f4fafd;
+  overflow: hidden;
 }
 
-/* ── Top Bar ──────────────────────────────────────── */
+/* ── Top Bar ─────────────────────────────────────────────────── */
 .editor-topbar {
   background: #f4fafd;
   border-bottom: 2px solid #0f172a;
@@ -18,18 +21,50 @@
   z-index: 100;
 }
 
+@media (max-width: 900px) {
+  .editor-topbar {
+    height: auto;
+    min-height: 52px;
+    padding: 6px 14px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 600px) {
+  .editor-topbar {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+}
+
 .editor-back-btn {
   font-family: "Space Grotesk", sans-serif;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .editor-back-btn {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
 }
 
 .editor-divider {
   width: 2px;
   height: 24px;
   background: #0f172a;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .editor-divider {
+    display: none;
+  }
 }
 
 /* Title */
@@ -45,6 +80,24 @@
   border: 2px solid #0f172a;
 }
 
+@media (max-width: 900px) {
+  .editor-title-input {
+    width: 160px;
+  }
+}
+@media (max-width: 600px) {
+  .editor-title-input {
+    width: 120px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 400px) {
+  .editor-title-input {
+    width: 90px;
+    font-size: 10px;
+  }
+}
+
 .editor-title {
   font-family: "Space Grotesk", sans-serif;
   font-weight: 700;
@@ -52,7 +105,30 @@
   text-transform: uppercase;
   letter-spacing: -0.01em;
   color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
 }
+
+@media (max-width: 900px) {
+  .editor-title {
+    max-width: 160px;
+  }
+}
+@media (max-width: 600px) {
+  .editor-title {
+    font-size: 11px;
+    max-width: 110px;
+  }
+}
+@media (max-width: 400px) {
+  .editor-title {
+    max-width: 80px;
+    font-size: 10px;
+  }
+}
+
 .editor-title-editable {
   cursor: text;
   padding: 4px 8px;
@@ -79,6 +155,28 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .editor-status-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Show only dot on very small screens */
+  .editor-status-badge .status-label {
+    display: none;
+  }
+  .editor-status-badge {
+    padding: 2px 6px;
+    min-width: 28px;
+    justify-content: center;
+  }
 }
 
 .editor-status-connecting {
@@ -105,16 +203,38 @@
   background: #eef5f8;
   border: 1px solid #0f172a;
   color: #21515f;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .editor-access-badge {
+    font-size: 8px;
+    padding: 2px 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .editor-access-badge {
+    display: none;
+  }
 }
 
 .editor-spacer {
   flex: 1;
+  min-width: 8px;
 }
 
-/* Active users avatars */
+/* Avatars */
 .editor-avatars {
   display: flex;
   align-items: center;
+}
+
+@media (max-width: 900px) {
+  .editor-avatars {
+    display: none;
+  }
 }
 
 .editor-avatar {
@@ -128,9 +248,18 @@
   font-family: "Space Grotesk", sans-serif;
   font-size: 11px;
   font-weight: 700;
+  flex-shrink: 0;
 }
 .editor-avatar-overlap {
   margin-left: -6px;
+}
+.editor-more-users {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  margin-left: 8px;
+  text-transform: uppercase;
 }
 
 .editor-avatar-tone-1 {
@@ -152,22 +281,25 @@
   background: #0c8599;
 }
 
-.editor-more-users {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  color: #475569;
-  margin-left: 8px;
-  text-transform: uppercase;
-}
-
 .editor-top-btn-active {
   background: #eef5f8 !important;
   color: #21515f !important;
   border-color: #21515f !important;
 }
 
-/* ── Toolbar ──────────────────────────────────────── */
+/* On very small screens, hide button labels and show icon only */
+@media (max-width: 500px) {
+  .editor-topbar .btn-secondary.btn-sm span:not(.material-symbols-outlined) {
+    display: none;
+  }
+  .editor-topbar .btn-secondary.btn-sm {
+    padding: 4px 8px;
+    min-width: 32px;
+    justify-content: center;
+  }
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────── */
 .editor-toolbar {
   background: #eef5f8;
   border-bottom: 2px solid #0f172a;
@@ -177,6 +309,26 @@
   gap: 2px;
   flex-shrink: 0;
   flex-wrap: wrap;
+  overflow-x: auto;
+}
+
+@media (max-width: 900px) {
+  .editor-toolbar {
+    padding: 4px 10px;
+    gap: 1px;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .editor-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .editor-toolbar {
+    padding: 4px 6px;
+  }
 }
 
 .toolbar-sep {
@@ -184,13 +336,15 @@
   height: 20px;
   background: #cbd5e1;
   margin: 0 4px;
+  flex-shrink: 0;
 }
 
-/* ── Main layout ──────────────────────────────────── */
+/* ── Main Layout ─────────────────────────────────────────────── */
 .editor-main-layout {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 .editor-main-area {
@@ -201,10 +355,9 @@
   background-image: radial-gradient(#3b6978 1px, transparent 1px);
   background-size: 32px 32px;
   background-attachment: local;
-  opacity: 1;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Dot grid overlay trick */
 .editor-main-area::before {
   content: "";
   position: fixed;
@@ -214,6 +367,22 @@
   background-size: 32px 32px;
   opacity: 0.3;
   z-index: 0;
+}
+
+@media (max-width: 900px) {
+  .editor-main-area {
+    padding: 20px 16px 60px;
+  }
+}
+
+@media (max-width: 600px) {
+  .editor-main-area {
+    padding: 12px 8px 60px;
+    background-image: none;
+  }
+  .editor-main-area::before {
+    display: none;
+  }
 }
 
 .editor-content-row {
@@ -240,6 +409,59 @@
   padding: 52px 64px;
 }
 
+@media (max-width: 1100px) {
+  .editor-sheet {
+    padding: 40px 48px;
+  }
+}
+@media (max-width: 900px) {
+  .editor-sheet {
+    padding: 32px 32px;
+    box-shadow: 4px 4px 0px #0f172a;
+  }
+}
+@media (max-width: 600px) {
+  .editor-sheet {
+    padding: 24px 18px;
+    box-shadow: 3px 3px 0px #0f172a;
+    min-height: 60vh;
+  }
+}
+@media (max-width: 400px) {
+  .editor-sheet {
+    padding: 16px 12px;
+  }
+}
+
+/* ── Sheet label ── */
+.editor-sheet-label {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  background: #eef5f8;
+  border: 2px solid #0f172a;
+  border-bottom: none;
+  padding: 4px 14px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #21515f;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateY(-100%);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .editor-sheet-label {
+    display: none;
+  }
+}
+
+/* ── External Tasks Panel ───────────────────────────────────── */
 .external-tasks-handle {
   position: absolute;
   top: 12px;
@@ -263,28 +485,6 @@
   left: 326px;
 }
 
-/* Document filename label */
-.editor-sheet-label {
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  background: #eef5f8;
-  border: 2px solid #0f172a;
-  border-bottom: none;
-  padding: 4px 14px;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #21515f;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transform: translateY(-100%);
-  white-space: nowrap;
-}
-
 .external-tasks-panel {
   position: absolute;
   left: 0;
@@ -302,9 +502,34 @@
 .external-tasks-panel.is-open {
   transform: translateX(0);
 }
-
 .external-tasks-panel.is-closed {
   transform: translateX(-100%);
+}
+
+/* Tablet/mobile: inline layout */
+@media (max-width: 900px) {
+  .external-tasks-panel {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none !important;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+    box-shadow: 3px 3px 0 #0f172a;
+  }
+
+  .external-tasks-panel.is-closed {
+    display: none;
+  }
+
+  .external-tasks-handle {
+    position: relative;
+    left: auto !important;
+    top: auto;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
 }
 
 .external-tasks-header {
@@ -337,6 +562,7 @@
 
 .external-tasks-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .external-tasks-table {
@@ -362,7 +588,7 @@
 }
 
 .external-tasks-status-cell {
-  width: 86px;
+  width: 56px;
 }
 
 .external-tasks-status-cell input[type="checkbox"] {
@@ -389,35 +615,7 @@
   color: #64748b;
 }
 
-@media (max-width: 768px) {
-  .editor-content-row {
-    max-width: 100%;
-  }
-  .editor-main-area {
-    padding: 16px 10px 60px;
-  }
-  .editor-sheet {
-    width: 100%;
-    max-width: 100%;
-    padding: 28px 20px;
-    box-shadow: 3px 3px 0px #0f172a;
-  }
-  .external-tasks-panel {
-    position: relative;
-    left: auto;
-    top: auto;
-    transform: none !important;
-    width: 100%;
-    min-width: 0;
-    margin-bottom: 16px;
-    box-shadow: 3px 3px 0px #0f172a;
-  }
-  .external-tasks-handle {
-    display: none;
-  }
-}
-
-/* ── Sidebar panels ───────────────────────────────── */
+/* ── Side Panels ────────────────────────────────────────────── */
 .editor-panel {
   width: 300px;
   flex-shrink: 0;
@@ -428,6 +626,31 @@
   overflow: hidden;
 }
 
+@media (max-width: 1024px) {
+  .editor-panel {
+    width: 270px;
+  }
+}
+
+@media (max-width: 768px) {
+  .editor-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 360px;
+    z-index: 500;
+    box-shadow: -4px 0 0 #0f172a;
+  }
+}
+
+@media (max-width: 480px) {
+  .editor-panel {
+    max-width: 100%;
+  }
+}
+
 .editor-panel-header {
   padding: 14px 16px;
   border-bottom: 2px solid #0f172a;
@@ -435,6 +658,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .editor-panel-title {
@@ -451,4 +675,5 @@
   flex: 1;
   overflow: auto;
   padding: 16px;
+  -webkit-overflow-scrolling: touch;
 }
