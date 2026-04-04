@@ -216,16 +216,51 @@
   z-index: 0;
 }
 
+.editor-content-row {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.editor-sheet-wrap {
+  position: relative;
+  z-index: 1;
+}
+
 .editor-sheet {
   position: relative;
   z-index: 1;
-  max-width: 800px;
+  max-width: 1040px;
   margin: 0 auto;
   background: #fff;
   border: 2px solid #0f172a;
   box-shadow: 6px 6px 0px #0f172a;
   min-height: 80vh;
   padding: 52px 64px;
+}
+
+.external-tasks-handle {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  z-index: 4;
+  padding: 6px 10px;
+  min-width: 86px;
+  background: #eef5f8;
+  color: #21515f;
+  border: 2px solid #0f172a;
+  box-shadow: 3px 3px 0px #0f172a;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: left 0.2s ease;
+}
+
+.external-tasks-handle.is-open {
+  left: 326px;
 }
 
 /* Document filename label */
@@ -250,13 +285,135 @@
   white-space: nowrap;
 }
 
+.external-tasks-panel {
+  position: absolute;
+  left: 0;
+  top: 52px;
+  z-index: 3;
+  width: 320px;
+  min-width: 320px;
+  margin: 0;
+  border: 2px solid #0f172a;
+  box-shadow: 6px 6px 0px #0f172a;
+  background: #eef5f8;
+  transition: transform 0.2s ease;
+}
+
+.external-tasks-panel.is-open {
+  transform: translateX(0);
+}
+
+.external-tasks-panel.is-closed {
+  transform: translateX(-100%);
+}
+
+.external-tasks-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 2px solid #0f172a;
+}
+
+.external-tasks-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #21515f;
+}
+
+.external-tasks-count {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: auto;
+}
+
+.external-tasks-table-wrap {
+  overflow-x: auto;
+}
+
+.external-tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.external-tasks-table th,
+.external-tasks-table td {
+  border-bottom: 1px solid #cbd5e1;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.external-tasks-table th {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #21515f;
+  background: #f8fbfd;
+}
+
+.external-tasks-status-cell {
+  width: 86px;
+}
+
+.external-tasks-status-cell input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b6978;
+}
+
+.external-tasks-text {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.external-tasks-text-done {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.external-tasks-empty {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #64748b;
+}
+
 @media (max-width: 768px) {
+  .editor-content-row {
+    max-width: 100%;
+  }
   .editor-main-area {
     padding: 16px 10px 60px;
   }
   .editor-sheet {
+    width: 100%;
+    max-width: 100%;
     padding: 28px 20px;
     box-shadow: 3px 3px 0px #0f172a;
+  }
+  .external-tasks-panel {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none !important;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+    box-shadow: 3px 3px 0px #0f172a;
+  }
+  .external-tasks-handle {
+    display: none;
   }
 }
 

@@ -37,6 +37,12 @@ interface Props {
   onBack: () => void;
 }
 
+interface ExternalTask {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export default function EditorPage({ docId, onBack }: Props) {
   const { token, user } = useAuth();
   const [doc, setDoc] = useState<Document | null>(null);
@@ -50,6 +56,8 @@ export default function EditorPage({ docId, onBack }: Props) {
   const [showMedia, setShowMedia] = useState(false);
   const [title, setTitle] = useState("");
   const [editingTitle, setEditingTitle] = useState(false);
+  const [externalTasks, setExternalTasks] = useState<ExternalTask[]>([]);
+  const [tasksPanelOpen, setTasksPanelOpen] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const ydocRef = useRef(new Y.Doc());
   const editorRef = useRef<Editor | null>(null);
@@ -59,6 +67,11 @@ export default function EditorPage({ docId, onBack }: Props) {
     ydocRef.current.destroy();
     ydocRef.current = new Y.Doc();
     setYdocReady(false);
+  }, [docId]);
+
+  useEffect(() => {
+    setExternalTasks([]);
+    setTasksPanelOpen(false);
   }, [docId]);
 
   useEffect(() => {
@@ -82,20 +95,34 @@ export default function EditorPage({ docId, onBack }: Props) {
       socket.emit("join-document", { docId });
     });
     socket.on("disconnect", () => setStatus("disconnected"));
-    socket.on("load-document", ({ state, accessLevel: al, color }: any) => {
-      if (state) {
-        try {
-          Y.applyUpdate(
-            ydocRef.current,
-            decodeBase64ToUint8Array(state),
-            REMOTE_ORIGIN,
-          );
-        } catch {}
-      }
-      setAccessLevel(al);
-      setMyColor(color);
-      setYdocReady(true);
-    });
+    socket.on(
+      "load-document",
+      ({ state, accessLevel: al, color, externalTasks: tasks }: any) => {
+        if (state) {
+          try {
+            Y.applyUpdate(
+              ydocRef.current,
+              decodeBase64ToUint8Array(state),
+              REMOTE_ORIGIN,
+            );
+          } catch {}
+        }
+
+        if (Array.isArray(tasks)) {
+          const normalizedTasks = tasks.filter(
+            (task) =>
+              typeof task?.id === "string" &&
+              typeof task?.text === "string" &&
+              typeof task?.done === "boolean",
+          ) as ExternalTask[];
+          setExternalTasks(normalizedTasks);
+        }
+
+        setAccessLevel(al);
+        setMyColor(color);
+        setYdocReady(true);
+      },
+    );
     socket.on("receive-changes", (base64Update: string) => {
       try {
         Y.applyUpdate(
@@ -131,6 +158,20 @@ export default function EditorPage({ docId, onBack }: Props) {
         d ? { ...d, mediaAssets: [...(d.mediaAssets || []), asset] } : d,
       );
     });
+    socket.on("task-added", (task: ExternalTask) => {
+      setExternalTasks((prev) => {
+        if (prev.some((t) => t.id === task.id)) return prev;
+        return [...prev, task];
+      });
+    });
+    socket.on(
+      "task-toggled",
+      ({ taskId, done }: { taskId: string; done: boolean }) => {
+        setExternalTasks((prev) =>
+          prev.map((task) => (task.id === taskId ? { ...task, done } : task)),
+        );
+      },
+    );
     socket.on("error", (msg: string) => alert(msg));
 
     return () => {
@@ -163,6 +204,24 @@ export default function EditorPage({ docId, onBack }: Props) {
 
   const canEdit = accessLevel === "owner" || accessLevel === "edit";
   const isOwner = accessLevel === "owner";
+
+  const handleAddExternalTask = () => {
+    if (!canEdit) return;
+
+    const taskText = prompt("Enter task text:");
+    if (taskText === null) return;
+
+    const trimmed = taskText.trim();
+    if (!trimmed) return;
+
+    setTasksPanelOpen(true);
+
+    socketRef.current?.emit("task-added", { docId, text: trimmed });
+  };
+
+  const toggleExternalTask = (taskId: string) => {
+    socketRef.current?.emit("task-toggled", { docId, taskId });
+  };
 
   const statusLabel =
     status === "connected"
@@ -267,59 +326,132 @@ export default function EditorPage({ docId, onBack }: Props) {
       </header>
 
       {/* ── Toolbar ── */}
-      {canEdit && editorRef.current && <Toolbar editor={editorRef.current} />}
+      {canEdit && editorRef.current && (
+        <Toolbar editor={editorRef.current} onAddTask={handleAddExternalTask} />
+      )}
 
       {/* ── Main Layout ── */}
       <div className="editor-main-layout">
         {/* Editor area */}
         <div className="editor-main-area">
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <div className="editor-sheet">
-              {/* Sheet label tab */}
-              <div className="editor-sheet-label">
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 12 }}
-                >
-                  description
-                </span>
-                {title || "Untitled"}.md
-                <span style={{ color: "#94A3B8", marginLeft: 12 }}>
-                  Edited just now · {user?.username}
-                </span>
+          <div className="editor-content-row">
+            <button
+              type="button"
+              className={`external-tasks-handle ${tasksPanelOpen ? "is-open" : "is-closed"}`}
+              onClick={() => setTasksPanelOpen((v) => !v)}
+              title={tasksPanelOpen ? "Hide task tracker" : "Show task tracker"}
+              aria-label={
+                tasksPanelOpen ? "Hide task tracker" : "Show task tracker"
+              }
+            >
+              {tasksPanelOpen ? "◀ Tasks" : "▶ Tasks"}
+            </button>
+
+            <section
+              className={`external-tasks-panel ${tasksPanelOpen ? "is-open" : "is-closed"}`}
+              aria-label="Task tracker"
+            >
+              <div className="external-tasks-header">
+                <div className="external-tasks-title">Task Tracker</div>
+                <div className="external-tasks-count">
+                  {externalTasks.filter((t) => !t.done).length} open /{" "}
+                  {externalTasks.length} total
+                </div>
               </div>
 
-              {ydocReady && (
-                <CollabEditor
-                  ydoc={ydocRef.current}
-                  socket={socketRef.current}
-                  docId={docId}
-                  canEdit={canEdit}
-                  myColor={myColor}
-                  username={user?.username || "Anonymous"}
-                  editorRef={editorRef}
-                  mediaAssets={doc?.mediaAssets || []}
-                />
-              )}
+              <div className="external-tasks-table-wrap">
+                <table className="external-tasks-table">
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Task</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {externalTasks.length === 0 && (
+                      <tr>
+                        <td colSpan={2} className="external-tasks-empty">
+                          No tasks yet. Click "Tasks" in the toolbar to add one.
+                        </td>
+                      </tr>
+                    )}
+                    {externalTasks.map((task) => (
+                      <tr key={task.id}>
+                        <td className="external-tasks-status-cell">
+                          <input
+                            type="checkbox"
+                            checked={task.done}
+                            disabled={!canEdit}
+                            onChange={() => toggleExternalTask(task.id)}
+                            title={task.done ? "Mark as open" : "Mark as done"}
+                          />
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              task.done
+                                ? "external-tasks-text external-tasks-text-done"
+                                : "external-tasks-text"
+                            }
+                          >
+                            {task.text}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-              {!ydocReady && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 300,
-                    fontFamily: "Space Grotesk, sans-serif",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    color: "#94A3B8",
-                  }}
-                >
-                  Loading document…
+            <div className="editor-sheet-wrap">
+              <div className="editor-sheet">
+                {/* Sheet label tab */}
+                <div className="editor-sheet-label">
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 12 }}
+                  >
+                    description
+                  </span>
+                  {title || "Untitled"}.md
+                  <span style={{ color: "#94A3B8", marginLeft: 12 }}>
+                    Edited just now · {user?.username}
+                  </span>
                 </div>
-              )}
+
+                {ydocReady && (
+                  <CollabEditor
+                    ydoc={ydocRef.current}
+                    socket={socketRef.current}
+                    docId={docId}
+                    canEdit={canEdit}
+                    myColor={myColor}
+                    username={user?.username || "Anonymous"}
+                    editorRef={editorRef}
+                    mediaAssets={doc?.mediaAssets || []}
+                  />
+                )}
+
+                {!ydocReady && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 300,
+                      fontFamily: "Space Grotesk, sans-serif",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                      color: "#94A3B8",
+                    }}
+                  >
+                    Loading document…
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
-export type AccessLevel = 'view' | 'edit';
+export type AccessLevel = "view" | "edit";
 
 export interface ICollaborator {
   userId: mongoose.Types.ObjectId;
@@ -13,13 +13,13 @@ export interface ICollaborator {
 export interface IInvitation {
   inviteeCollabId: string;
   accessLevel: AccessLevel;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: "pending" | "accepted" | "rejected";
   createdAt: Date;
 }
 
 export interface IMediaAsset {
   id: string;
-  type: 'image' | 'pdf';
+  type: "image" | "pdf";
   filename: string;
   originalName: string;
   mimetype: string;
@@ -27,6 +27,12 @@ export interface IMediaAsset {
   url: string;
   uploadedBy: mongoose.Types.ObjectId;
   uploadedAt: Date;
+}
+
+export interface IExternalTask {
+  id: string;
+  text: string;
+  done: boolean;
 }
 
 export interface IDocument extends Document {
@@ -38,45 +44,60 @@ export interface IDocument extends Document {
   collaborators: ICollaborator[];
   invitations: IInvitation[];
   mediaAssets: IMediaAsset[];
+  externalTasks: IExternalTask[];
   updatedAt: Date;
 }
 
 const CollaboratorSchema = new Schema<ICollaborator>({
-  userId:      { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  collabId:    { type: String, required: true },
-  username:    { type: String, required: true },
-  accessLevel: { type: String, enum: ['view', 'edit'], default: 'edit' },
-  joinedAt:    { type: Date, default: Date.now },
+  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  collabId: { type: String, required: true },
+  username: { type: String, required: true },
+  accessLevel: { type: String, enum: ["view", "edit"], default: "edit" },
+  joinedAt: { type: Date, default: Date.now },
 });
 
 const InvitationSchema = new Schema<IInvitation>({
   inviteeCollabId: { type: String, required: true },
-  accessLevel:     { type: String, enum: ['view', 'edit'], default: 'edit' },
-  status:          { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
-  createdAt:       { type: Date, default: Date.now },
+  accessLevel: { type: String, enum: ["view", "edit"], default: "edit" },
+  status: {
+    type: String,
+    enum: ["pending", "accepted", "rejected"],
+    default: "pending",
+  },
+  createdAt: { type: Date, default: Date.now },
 });
 
 const MediaAssetSchema = new Schema<IMediaAsset>({
-  id:           { type: String, required: true },
-  type:         { type: String, enum: ['image', 'pdf'], required: true },
-  filename:     { type: String, required: true },
+  id: { type: String, required: true },
+  type: { type: String, enum: ["image", "pdf"], required: true },
+  filename: { type: String, required: true },
   originalName: { type: String, required: true },
-  mimetype:     { type: String, required: true },
-  size:         { type: Number, required: true },
-  url:          { type: String, required: true },
-  uploadedBy:   { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  uploadedAt:   { type: Date, default: Date.now },
+  mimetype: { type: String, required: true },
+  size: { type: Number, required: true },
+  url: { type: String, required: true },
+  uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  uploadedAt: { type: Date, default: Date.now },
 });
 
-const DocumentSchema = new Schema<IDocument>({
-  docId:          { type: String, required: true, unique: true },
-  title:          { type: String, default: 'Untitled Document' },
-  content:        { type: String, default: '' },
-  owner:          { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  ownerUsername:  { type: String, required: true },
-  collaborators:  [CollaboratorSchema],
-  invitations:    [InvitationSchema],
-  mediaAssets:    [MediaAssetSchema],
-}, { timestamps: true });
+const ExternalTaskSchema = new Schema<IExternalTask>({
+  id: { type: String, required: true },
+  text: { type: String, required: true },
+  done: { type: Boolean, default: false },
+});
 
-export default mongoose.model<IDocument>('Document', DocumentSchema);
+const DocumentSchema = new Schema<IDocument>(
+  {
+    docId: { type: String, required: true, unique: true },
+    title: { type: String, default: "Untitled Document" },
+    content: { type: String, default: "" },
+    owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    ownerUsername: { type: String, required: true },
+    collaborators: [CollaboratorSchema],
+    invitations: [InvitationSchema],
+    mediaAssets: [MediaAssetSchema],
+    externalTasks: { type: [ExternalTaskSchema], default: [] },
+  },
+  { timestamps: true },
+);
+
+export default mongoose.model<IDocument>("Document", DocumentSchema);

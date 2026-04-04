@@ -111,6 +111,17 @@ function encodeBytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function toAbsoluteUrl(rawHref: string): string {
+  const value = rawHref.trim();
+  if (!value) return "";
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  return `https://${value}`;
+}
+
 export default function CollabEditor({
   ydoc,
   socket,
@@ -205,7 +216,12 @@ export default function CollabEditor({
       Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Link.configure({ openOnClick: false }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          title: "Ctrl/Cmd + Left Click to open link",
+        },
+      }),
       ResizableImage.configure({ inline: false, allowBase64: true }),
       Color,
       TextStyle,
@@ -215,25 +231,33 @@ export default function CollabEditor({
     editorProps: {
       attributes: { class: "prose-editor" },
       handleDOMEvents: {
-        click: (view, event) => {
-          const target = event.target as HTMLElement;
+        click: (_view, event) => {
+          const target = event.target as HTMLElement | null;
           const mouseEvent = event as MouseEvent;
-          // Check if Ctrl (Windows/Linux) or Cmd (Mac) is pressed
           const isCtrlOrCmd = mouseEvent.ctrlKey || mouseEvent.metaKey;
 
-          if (
-            isCtrlOrCmd &&
-            target.tagName === "A" &&
-            target.getAttribute("href")
-          ) {
-            const href = target.getAttribute("href");
-            if (href && !href.startsWith("#")) {
-              event.preventDefault();
-              window.open(href, "_blank");
-              return true;
-            }
+          if (!isCtrlOrCmd || !target) {
+            return false;
           }
-          return false;
+
+          const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+          if (!anchor) {
+            return false;
+          }
+
+          const href = anchor.getAttribute("href") || "";
+          if (!href || href.startsWith("#")) {
+            return false;
+          }
+
+          const absoluteUrl = toAbsoluteUrl(href);
+          if (!absoluteUrl) {
+            return false;
+          }
+
+          event.preventDefault();
+          window.open(absoluteUrl, "_blank", "noopener,noreferrer");
+          return true;
         },
       },
     },

@@ -205,6 +205,23 @@ button {
   font-size: 15px;
   line-height: 1.8;
   color: var(--text);
+  cursor:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'><circle cx='9' cy='9' r='5' fill='%23ff3b30' stroke='%230f172a' stroke-width='2'/></svg>")
+      9 9,
+    text;
+  caret-color: #e03131;
+}
+
+.ProseMirror * {
+  cursor: text;
+}
+
+.ProseMirror:focus {
+  caret-color: #e03131;
+}
+
+.ProseMirror ::selection {
+  background: rgba(14, 165, 233, 0.35);
 }
 
 .ProseMirror p {
@@ -356,10 +373,30 @@ button {
 }
 .ProseMirror li[data-type="taskItem"] {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
+.ProseMirror li[data-type="taskItem"] > label {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2px;
+}
+.ProseMirror li[data-type="taskItem"] > div {
+  flex: 1;
+  min-width: 0;
+}
+.ProseMirror li[data-type="taskItem"] > div > p {
+  margin: 0;
+}
 .ProseMirror li[data-type="taskItem"] input[type="checkbox"] {
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  margin: 0;
   flex-shrink: 0;
   cursor: pointer;
   accent-color: var(--primary);

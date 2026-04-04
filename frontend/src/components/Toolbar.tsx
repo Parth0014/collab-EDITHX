@@ -3,6 +3,7 @@ import { Editor } from "@tiptap/react";
 
 interface Props {
   editor: Editor;
+  onAddTask?: () => void;
 }
 
 const Sep = () => (
@@ -68,8 +69,19 @@ function ToolBtn({
   );
 }
 
-export default function Toolbar({ editor }: Props) {
+export default function Toolbar({ editor, onAddTask }: Props) {
   if (!editor) return null;
+
+  const [, forceToolbarRefresh] = React.useReducer((n) => n + 1, 0);
+
+  const toAbsoluteUrl = (rawUrl: string) => {
+    const value = rawUrl.trim();
+    if (!value) return "";
+    if (/^https?:\/\//i.test(value)) {
+      return value;
+    }
+    return `https://${value}`;
+  };
 
   const [currentFontSize, setCurrentFontSize] = React.useState<string>("19px");
   const lastSelectionRef = React.useRef<{ from: number; to: number } | null>(
@@ -80,11 +92,24 @@ export default function Toolbar({ editor }: Props) {
     const syncSelection = () => {
       const { from, to } = editor.state.selection;
       lastSelectionRef.current = { from, to };
+      forceToolbarRefresh();
     };
     syncSelection();
+
+    const onEditorUpdate = () => {
+      forceToolbarRefresh();
+    };
+
     editor.on("selectionUpdate", syncSelection);
+    editor.on("transaction", onEditorUpdate);
+    editor.on("focus", onEditorUpdate);
+    editor.on("blur", onEditorUpdate);
+
     return () => {
       editor.off("selectionUpdate", syncSelection);
+      editor.off("transaction", onEditorUpdate);
+      editor.off("focus", onEditorUpdate);
+      editor.off("blur", onEditorUpdate);
     };
   }, [editor]);
 
@@ -104,30 +129,16 @@ export default function Toolbar({ editor }: Props) {
 
   const addLink = () => {
     const url = prompt("Enter URL:");
-    if (url) {
-      // Add http:// if no protocol is specified
-      const finalUrl = /^https?:\/\//.test(url) ? url : `http://${url}`;
-      editor.chain().focus().setLink({ href: finalUrl }).run();
-    }
+    if (!url) return;
+
+    const finalUrl = toAbsoluteUrl(url);
+    if (!finalUrl) return;
+
+    editor.chain().focus().setLink({ href: finalUrl }).run();
   };
 
   const addTask = () => {
-    const taskText = prompt("Enter task text:");
-    if (taskText !== null && taskText.trim()) {
-      // Create a new task item with the text
-      editor
-        .chain()
-        .focus()
-        .insertContent([
-          {
-            type: "taskItem",
-            attrs: { checked: false },
-            content: [{ type: "text", text: taskText }],
-          },
-          { type: "paragraph" },
-        ])
-        .run();
-    }
+    onAddTask?.();
   };
 
   const resizeSelectedImage = (delta: number) => {
@@ -351,11 +362,7 @@ export default function Toolbar({ editor }: Props) {
       >
         1. List
       </ToolBtn>
-      <ToolBtn
-        title="Task list"
-        active={editor.isActive("taskList")}
-        onClick={addTask}
-      >
+      <ToolBtn title="Tasks" active={false} onClick={addTask}>
         ☑ Tasks
       </ToolBtn>
 

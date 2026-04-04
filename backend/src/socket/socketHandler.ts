@@ -97,6 +97,7 @@ export function setupSocket(io: Server) {
           state: Buffer.from(state).toString("base64"),
           accessLevel: isOwner ? "owner" : collab!.accessLevel,
           color: roomMap.get(socket.id)!.color,
+          externalTasks: doc.externalTasks || [],
         });
 
         // Broadcast updated user list
@@ -181,6 +182,64 @@ export function setupSocket(io: Server) {
     socket.on("media-added", ({ docId, asset }: any) => {
       socket.to(docId).emit("media-added", asset);
     });
+
+    // Task added - persist and broadcast to room
+    socket.on(
+      "task-added",
+      async ({ docId, text }: { docId: string; text: string }) => {
+        try {
+          const trimmedText = String(text || "").trim();
+          if (!trimmedText) return;
+
+          const doc = await DocumentModel.findOne({ docId });
+          if (!doc) return;
+
+          const isOwner = doc.owner.toString() === user.userId;
+          const canEdit = doc.collaborators.some(
+            (c) =>
+              c.userId.toString() === user.userId && c.accessLevel === "edit",
+          );
+          if (!isOwner && !canEdit) return;
+
+          const task = {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            text: trimmedText,
+            done: false,
+          };
+
+          doc.externalTasks = [...(doc.externalTasks || []), task];
+          await doc.save();
+
+          io.to(docId).emit("task-added", task);
+        } catch {}
+      },
+    );
+
+    // Task toggled - persist and broadcast to room
+    socket.on(
+      "task-toggled",
+      async ({ docId, taskId }: { docId: string; taskId: string }) => {
+        try {
+          const doc = await DocumentModel.findOne({ docId });
+          if (!doc) return;
+
+          const isOwner = doc.owner.toString() === user.userId;
+          const canEdit = doc.collaborators.some(
+            (c) =>
+              c.userId.toString() === user.userId && c.accessLevel === "edit",
+          );
+          if (!isOwner && !canEdit) return;
+
+          const task = (doc.externalTasks || []).find((t) => t.id === taskId);
+          if (!task) return;
+
+          task.done = !task.done;
+          await doc.save();
+
+          io.to(docId).emit("task-toggled", { taskId, done: task.done });
+        } catch {}
+      },
+    );
 
     socket.on("disconnect", () => {
       const staleClientIds = Array.from(

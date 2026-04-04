@@ -35,6 +35,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       collaborators: [],
       invitations: [],
       mediaAssets: [],
+      externalTasks: [],
     });
     res.status(201).json(doc);
   } catch {
@@ -65,6 +66,7 @@ router.get("/:docId", async (req: AuthRequest, res: Response) => {
       collaborators: doc.collaborators,
       invitations: doc.invitations,
       mediaAssets: doc.mediaAssets,
+      externalTasks: doc.externalTasks,
       accessLevel: isOwner ? "owner" : collab!.accessLevel,
     });
   } catch {
@@ -250,11 +252,9 @@ router.delete(
 
       // Allow owner to remove anyone, or user to remove themselves
       if (!isOwner && !isRemovingSelf) {
-        return res
-          .status(403)
-          .json({
-            error: "Only owner can revoke access or you can remove yourself",
-          });
+        return res.status(403).json({
+          error: "Only owner can revoke access or you can remove yourself",
+        });
       }
 
       doc.collaborators = doc.collaborators.filter(
