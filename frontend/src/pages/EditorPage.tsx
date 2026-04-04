@@ -219,7 +219,6 @@ export default function EditorPage({ docId, onBack }: Props) {
                     </div>
                   </div>
                 ))}
-    } catch {}
   }, [notifications]);
 
   useEffect(() => {
