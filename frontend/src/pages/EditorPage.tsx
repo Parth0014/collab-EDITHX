@@ -11,7 +11,7 @@ import Toolbar from "../components/Toolbar";
 import { Editor } from "@tiptap/react";
 import "./EditorPage.css";
 
-const SOCKET_URL = "http://localhost:3000";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
 const REMOTE_ORIGIN = "remote-sync";
 
 function decodeBase64ToUint8Array(base64: string): Uint8Array {
