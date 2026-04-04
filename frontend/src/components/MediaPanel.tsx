@@ -99,10 +99,28 @@ export default function MediaPanel({
     <aside className="media-panel">
       {/* Header */}
       <div className="media-panel-header">
-        <span className="media-panel-title">📎 Media</span>
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 18, color: "#21515F" }}
+        >
+          attach_file
+        </span>
+        <span className="media-panel-title">MEDIA_ASSETS.LOG</span>
+        <span
+          style={{
+            fontFamily: "Space Grotesk, sans-serif",
+            fontSize: 9,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            color: "#94A3B8",
+          }}
+        >
+          {images.length + pdfs.length} files
+        </span>
         <button
           className="btn-ghost btn-sm media-panel-close"
           onClick={onClose}
+          style={{ marginLeft: 4, padding: "2px 6px" }}
         >
           ✕
         </button>
@@ -117,7 +135,17 @@ export default function MediaPanel({
             onDragOver={(e) => e.preventDefault()}
             onClick={() => fileInput.current?.click()}
           >
-            <div className="media-upload-icon">{uploading ? "⏳" : "📤"}</div>
+            <div className="media-upload-icon">
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: 32,
+                  color: uploading ? "#21515F" : "#CBD5E1",
+                }}
+              >
+                {uploading ? "hourglass_top" : "upload_file"}
+              </span>
+            </div>
             <div className="media-upload-text">
               {uploading ? uploadProgress : "Drop files or click to upload"}
             </div>
@@ -162,14 +190,14 @@ export default function MediaPanel({
                     </span>
                     {isOwner && (
                       <button
-                        className="btn-ghost btn-sm media-delete-btn"
+                        className="media-delete-btn"
                         onClick={() => deleteAsset(asset.id)}
                       >
                         ✕
                       </button>
                     )}
                   </div>
-                  <div className="media-insert-badge">Click to insert</div>
+                  <div className="media-insert-badge">Insert</div>
                 </div>
               ))}
             </div>
@@ -192,9 +220,7 @@ export default function MediaPanel({
         )}
 
         {images.length === 0 && pdfs.length === 0 && !canEdit && (
-          <div className="media-empty-state">
-            No media files in this document.
-          </div>
+          <div className="media-empty-state">No media files</div>
         )}
       </div>
     </aside>
@@ -213,14 +239,16 @@ function PdfWidget({
   const fullUrl = resolveMediaUrl(asset.url);
   return (
     <div className="pdf-widget">
-      {/* PDF preview area */}
       <div className="pdf-preview">
-        <div className="pdf-icon">📄</div>
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 40, color: "#3B6978" }}
+        >
+          picture_as_pdf
+        </span>
         <div className="pdf-name">{asset.originalName}</div>
         <div className="pdf-size">PDF · {formatSize(asset.size)}</div>
       </div>
-
-      {/* Actions bar */}
       <div className="pdf-actions">
         <a
           href={fullUrl}
@@ -229,7 +257,13 @@ function PdfWidget({
           className="pdf-link-main"
         >
           <button className="btn-primary btn-sm pdf-view-btn">
-            View PDF ↗
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 12 }}
+            >
+              open_in_new
+            </span>
+            View PDF
           </button>
         </a>
         <a
@@ -241,7 +275,12 @@ function PdfWidget({
             className="btn-secondary btn-sm pdf-icon-btn"
             title="Download"
           >
-            ⬇
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 12 }}
+            >
+              download
+            </span>
           </button>
         </a>
         {isOwner && (

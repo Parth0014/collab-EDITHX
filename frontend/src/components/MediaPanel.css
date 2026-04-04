@@ -1,8 +1,8 @@
 .media-panel {
-  width: 300px;
+  width: 296px;
   flex-shrink: 0;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
+  background: #f4fafd;
+  border-left: 2px solid #0f172a;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -10,14 +10,21 @@
 
 .media-panel-header {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid #0f172a;
+  background: #eef5f8;
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .media-panel-title {
-  font-weight: 600;
+  font-family: "Space Grotesk", sans-serif;
   font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #21515f;
+  flex: 1;
 }
 
 .media-panel-close {
@@ -30,23 +37,26 @@
   padding: 16px;
 }
 
+/* ── Upload Zone ── */
 .media-upload-zone {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
+  border: 2px dashed #cbd5e1;
   padding: 24px 16px;
   text-align: center;
   cursor: pointer;
   margin-bottom: 20px;
-  transition: border-color 0.15s;
-  background: var(--bg);
+  transition: all 0.15s;
+  background: #fff;
 }
-
 .media-upload-zone:hover {
-  border-color: var(--accent);
+  border-color: #3b6978;
+  border-style: solid;
+  background: #eef5f8;
 }
 
 .media-uploading {
-  background: var(--accent-light);
+  background: #eef5f8;
+  border-style: solid;
+  border-color: #21515f;
 }
 
 .media-upload-icon {
@@ -55,14 +65,18 @@
 }
 
 .media-upload-text {
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--text);
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0f172a;
 }
 
 .media-upload-help {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  color: #94a3b8;
   margin-top: 4px;
 }
 
@@ -70,19 +84,22 @@
   display: none;
 }
 
+/* ── Section ── */
 .media-section {
   margin-bottom: 20px;
 }
 
 .media-section-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   margin-bottom: 10px;
 }
 
+/* ── Grid ── */
 .media-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -91,9 +108,15 @@
 
 .media-card {
   position: relative;
-  border-radius: 6px;
+  border: 2px solid #0f172a;
   overflow: hidden;
-  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: 2px 2px 0px #0f172a;
+  transition: all 0.1s;
+}
+.media-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #0f172a;
 }
 
 .media-thumb {
@@ -106,12 +129,16 @@
 
 .media-card-meta {
   padding: 5px 6px;
-  background: var(--surface);
-  font-size: 10px;
-  color: var(--text-muted);
+  background: #eef5f8;
+  border-top: 1px solid #0f172a;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #475569;
   display: flex;
   align-items: center;
   gap: 4px;
+  text-transform: uppercase;
 }
 
 .media-card-name {
@@ -124,66 +151,85 @@
 .media-delete-btn {
   padding: 1px 4px;
   font-size: 10px;
-  color: var(--danger);
+  color: #dc2626;
+  cursor: pointer;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+.media-delete-btn:hover {
+  background: #fef2f2;
 }
 
 .media-insert-badge {
   position: absolute;
   top: 4px;
   right: 4px;
-  background: rgba(0, 0, 0, 0.5);
+  background: #21515f;
   color: #fff;
-  font-size: 9px;
-  padding: 2px 5px;
-  border-radius: 3px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border: 1px solid #0f172a;
+  pointer-events: none;
 }
 
 .media-empty-state {
   text-align: center;
-  color: var(--text-faint);
-  padding: 30px 0;
-  font-size: 13px;
+  padding: 40px 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #cbd5e1;
 }
 
+/* ── PDF Widget ── */
 .pdf-widget {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 2px solid #0f172a;
   margin-bottom: 10px;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: 3px 3px 0px #0f172a;
+  background: #fff;
 }
 
 .pdf-preview {
-  background: linear-gradient(135deg, #f1f0ee 0%, #e8e7e5 100%);
+  background: #eef5f8;
   padding: 20px;
   text-align: center;
-  position: relative;
+  border-bottom: 2px solid #0f172a;
 }
 
 .pdf-icon {
-  font-size: 44px;
+  font-size: 36px;
 }
 
 .pdf-name {
-  font-weight: 600;
-  font-size: 12px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
   margin-top: 6px;
-  color: var(--text);
+  color: #0f172a;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.04em;
 }
 
 .pdf-size {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  color: #94a3b8;
   margin-top: 2px;
 }
 
 .pdf-actions {
   padding: 8px 12px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: #f4fafd;
   display: flex;
   gap: 6px;
 }
@@ -195,7 +241,8 @@
 
 .pdf-view-btn {
   width: 100%;
-  font-size: 11px;
+  font-size: 10px;
+  justify-content: center;
 }
 
 .pdf-link-inline {
@@ -203,5 +250,5 @@
 }
 
 .pdf-icon-btn {
-  font-size: 11px;
+  font-size: 10px;
 }

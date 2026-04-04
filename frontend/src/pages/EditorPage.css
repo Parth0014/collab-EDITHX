@@ -2,14 +2,15 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--bg);
+  background: #f4fafd;
 }
 
+/* ── Top Bar ──────────────────────────────────────── */
 .editor-topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  height: 52px;
+  background: #f4fafd;
+  border-bottom: 2px solid #0f172a;
+  padding: 0 20px;
+  height: 60px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -18,69 +19,99 @@
 }
 
 .editor-back-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .editor-divider {
-  width: 1px;
-  height: 20px;
-  background: var(--border);
+  width: 2px;
+  height: 24px;
+  background: #0f172a;
 }
 
+/* Title */
 .editor-title-input {
-  font-size: 14px;
-  font-weight: 600;
-  width: 260px;
-  padding: 4px 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  width: 240px;
+  padding: 6px 10px;
+  background: #eef5f8;
+  border: 2px solid #0f172a;
 }
 
 .editor-title {
-  font-weight: 600;
-  font-size: 14px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: #0f172a;
 }
-
 .editor-title-editable {
   cursor: text;
+  padding: 4px 8px;
+  border: 2px solid transparent;
+  transition: border-color 0.1s;
 }
-
+.editor-title-editable:hover {
+  border-color: #cbd5e1;
+  background: #eef5f8;
+}
 .editor-title-readonly {
   cursor: default;
 }
 
-.editor-status-badge,
-.editor-access-badge {
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-weight: 500;
+/* Status */
+.editor-status-badge {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 10px;
+  border: 2px solid #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .editor-status-connecting {
-  background: var(--warning-light);
-  color: var(--warning);
+  background: #fffbeb;
+  color: #d97706;
 }
-
 .editor-status-connected {
-  background: var(--success-light);
-  color: var(--success);
+  background: #eef5f8;
+  color: #21515f;
 }
-
 .editor-status-disconnected {
-  background: var(--danger-light);
-  color: var(--danger);
+  background: #fef2f2;
+  color: #dc2626;
 }
 
+/* Access badge */
 .editor-access-badge {
-  background: var(--bg);
-  color: var(--text-muted);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  background: #eef5f8;
+  border: 1px solid #0f172a;
+  color: #21515f;
 }
 
 .editor-spacer {
   flex: 1;
 }
 
+/* Active users avatars */
 .editor-avatars {
   display: flex;
   align-items: center;
@@ -89,50 +120,73 @@
 .editor-avatar {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border: 2px solid #0f172a;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: "Space Grotesk", sans-serif;
   font-size: 11px;
   font-weight: 700;
-  border: 2px solid var(--surface);
 }
-
 .editor-avatar-overlap {
-  margin-left: -8px;
+  margin-left: -6px;
 }
 
 .editor-avatar-tone-1 {
-  background: #3b82f6;
+  background: #3b6978;
 }
 .editor-avatar-tone-2 {
-  background: #14b8a6;
+  background: #21515f;
 }
 .editor-avatar-tone-3 {
-  background: #ef4444;
+  background: #e03131;
 }
 .editor-avatar-tone-4 {
-  background: #f59e0b;
+  background: #f08c00;
 }
 .editor-avatar-tone-5 {
-  background: #8b5cf6;
+  background: #7048e8;
 }
 .editor-avatar-tone-6 {
-  background: #10b981;
+  background: #0c8599;
 }
 
 .editor-more-users {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
   margin-left: 8px;
+  text-transform: uppercase;
 }
 
 .editor-top-btn-active {
-  background: var(--accent-light);
-  color: var(--accent);
+  background: #eef5f8 !important;
+  color: #21515f !important;
+  border-color: #21515f !important;
 }
 
+/* ── Toolbar ──────────────────────────────────────── */
+.editor-toolbar {
+  background: #eef5f8;
+  border-bottom: 2px solid #0f172a;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.toolbar-sep {
+  width: 2px;
+  height: 20px;
+  background: #cbd5e1;
+  margin: 0 4px;
+}
+
+/* ── Main layout ──────────────────────────────────── */
 .editor-main-layout {
   flex: 1;
   display: flex;
@@ -142,26 +196,102 @@
 .editor-main-area {
   flex: 1;
   overflow: auto;
-  padding: 40px 24px;
+  padding: 32px 24px 60px;
+  background: #f4fafd;
+  background-image: radial-gradient(#3b6978 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-attachment: local;
+  opacity: 1;
+}
+
+/* Dot grid overlay trick */
+.editor-main-area::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.3;
+  z-index: 0;
 }
 
 .editor-sheet {
-  max-width: 780px;
-  margin: 0 auto;
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  min-height: 80vh;
-  padding: 48px 64px;
   position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  background: #fff;
+  border: 2px solid #0f172a;
+  box-shadow: 6px 6px 0px #0f172a;
+  min-height: 80vh;
+  padding: 52px 64px;
+}
+
+/* Document filename label */
+.editor-sheet-label {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  background: #eef5f8;
+  border: 2px solid #0f172a;
+  border-bottom: none;
+  padding: 4px 14px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #21515f;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateY(-100%);
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
   .editor-main-area {
-    padding: 16px 10px;
+    padding: 16px 10px 60px;
   }
-
   .editor-sheet {
-    padding: 24px 16px;
+    padding: 28px 20px;
+    box-shadow: 3px 3px 0px #0f172a;
   }
+}
+
+/* ── Sidebar panels ───────────────────────────────── */
+.editor-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: #f4fafd;
+  border-left: 2px solid #0f172a;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-panel-header {
+  padding: 14px 16px;
+  border-bottom: 2px solid #0f172a;
+  background: #eef5f8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-panel-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #21515f;
+  flex: 1;
+}
+
+.editor-panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
 }

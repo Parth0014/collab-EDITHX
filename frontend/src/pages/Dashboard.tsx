@@ -16,6 +16,7 @@ export default function Dashboard({ onOpenDoc }: Props) {
   const [newTitle, setNewTitle] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [invResp, setInvResp] = useState<{ [k: string]: "loading" | null }>({});
+  const [copied, setCopied] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -30,7 +31,6 @@ export default function Dashboard({ onOpenDoc }: Props) {
         logout();
         return;
       }
-      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -76,9 +76,7 @@ export default function Dashboard({ onOpenDoc }: Props) {
     try {
       await api.post(`/documents/${docId}/invitations/respond`, { action });
       setInvitations((i) => i.filter((inv) => inv.docId !== docId));
-      if (action === "accept") {
-        fetchAll();
-      }
+      if (action === "accept") fetchAll();
     } catch {
       alert("Failed to respond to invitation");
     } finally {
@@ -86,264 +84,502 @@ export default function Dashboard({ onOpenDoc }: Props) {
     }
   };
 
+  const copyCollabId = () => {
+    navigator.clipboard.writeText(user?.collabId || "");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   const ownDocs = docs.filter((d) => d.ownerUsername === user?.username);
   const sharedDocs = docs.filter((d) => d.ownerUsername !== user?.username);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      {/* Header */}
-      <header
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#F4FAFD",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* ── Sidebar + Main Layout ── */}
+      <div
         style={{
-          background: "var(--surface)",
-          borderBottom: "1px solid var(--border)",
-          padding: "0 24px",
-          height: 56,
           display: "flex",
-          alignItems: "center",
-          gap: 16,
+          flex: 1,
+          overflow: "hidden",
+          minHeight: "100vh",
         }}
       >
-        <span style={{ fontSize: 18, fontWeight: 700 }}>✏️ CollabEdit</span>
-        <div style={{ flex: 1 }} />
-        {/* CollabID badge */}
-        <div
+        {/* Sidebar */}
+        <aside
           style={{
-            background: "var(--accent-light)",
-            color: "var(--accent)",
-            padding: "4px 10px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 500,
+            width: 240,
+            flexShrink: 0,
+            background: "#F4FAFD",
+            borderRight: "2px solid #0F172A",
             display: "flex",
-            alignItems: "center",
-            gap: 6,
+            flexDirection: "column",
+            height: "100vh",
+            position: "sticky",
+            top: 0,
           }}
         >
-          <span style={{ opacity: 0.7 }}>Your CollabID:</span>
-          <strong style={{ fontFamily: "monospace" }}>{user?.collabId}</strong>
-          <button
-            onClick={() => navigator.clipboard.writeText(user?.collabId || "")}
-            className="btn-ghost btn-sm"
-            style={{ padding: "2px 6px", fontSize: 11 }}
-          >
-            Copy
-          </button>
-        </div>
-        <span style={{ color: "var(--text-muted)", fontSize: 13 }}>
-          Hi, {user?.username}
-        </span>
-        <button className="btn-secondary btn-sm" onClick={logout}>
-          Sign out
-        </button>
-      </header>
-
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px" }}>
-        {/* Pending Invitations */}
-        {invitations.length > 0 && (
-          <section style={{ marginBottom: 32 }}>
-            <h2
+          {/* Brand */}
+          <div style={{ padding: "24px 20px 20px" }}>
+            <div
               style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: "var(--text-muted)",
+                fontFamily: "Space Grotesk, sans-serif",
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#0F172A",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              CollabEdit
+            </div>
+            <div
+              style={{
+                fontFamily: "Space Grotesk, sans-serif",
+                fontSize: 9,
+                fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: "0.05em",
+                letterSpacing: "0.15em",
+                color: "#94A3B8",
+                marginTop: 2,
+              }}
+            >
+              {user?.username} · Lead Editor
+            </div>
+          </div>
+
+          {/* Nav */}
+          <nav style={{ flex: 1, padding: "0 12px" }}></nav>
+
+          {/* Bottom */}
+          <div style={{ padding: "16px 12px", borderTop: "2px solid #0F172A" }}>
+            {/* CollabID */}
+            <div
+              style={{
+                background: "#EEF5F8",
+                border: "2px solid #0F172A",
+                padding: "10px 12px",
                 marginBottom: 12,
               }}
             >
-              Pending Invitations
-            </h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {invitations.map((inv) => (
-                <div
-                  key={inv.docId}
+              <div className="section-heading" style={{ marginBottom: 4 }}>
+                Your CollabID
+              </div>
+              <div
+                style={{
+                  fontFamily: "Space Grotesk, sans-serif",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#21515F",
+                  wordBreak: "break-all",
+                  marginBottom: 8,
+                }}
+              >
+                {user?.collabId}
+              </div>
+              <button
+                className="btn-secondary btn-sm"
+                onClick={copyCollabId}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                {copied ? "✓ Copied" : "Copy ID"}
+              </button>
+            </div>
+
+            {/* New Document */}
+            <button
+              className="btn-primary"
+              style={{
+                width: "100%",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+              onClick={() => setShowCreate(true)}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16 }}
+              >
+                add
+              </span>
+              New Document
+            </button>
+
+            {/* Logout */}
+            <button
+              className="btn-ghost btn-sm"
+              onClick={logout}
+              style={{ width: "100%", justifyContent: "center" }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14 }}
+              >
+                logout
+              </span>
+              Sign Out
+            </button>
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <main style={{ flex: 1, overflow: "auto", paddingBottom: 40 }}>
+          {/* Top header */}
+          <div
+            style={{
+              background: "#F4FAFD",
+              borderBottom: "2px solid #0F172A",
+              padding: "0 32px",
+              height: 64,
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              position: "sticky",
+              top: 0,
+              zIndex: 50,
+            }}
+          >
+            <h1
+              style={{
+                fontFamily: "Space Grotesk, sans-serif",
+                fontSize: 22,
+                fontWeight: 700,
+                color: "#0F172A",
+                textTransform: "uppercase",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              The Archive
+            </h1>
+            <div style={{ flex: 1 }} />
+          </div>
+
+          <div style={{ padding: "32px" }}>
+            {/* Page title */}
+            <div style={{ marginBottom: 32 }}>
+              <h2
+                style={{
+                  fontFamily: "Space Grotesk, sans-serif",
+                  fontSize: 36,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.1,
+                  color: "#0F172A",
+                }}
+              >
+                Document
+                <br />
+                <span
                   style={{
-                    background: "var(--warning-light)",
-                    border: "1px solid #fde68a",
-                    borderRadius: "var(--radius)",
-                    padding: "14px 16px",
+                    color: "#3B6978",
+                    fontStyle: "italic",
+                    textDecoration: "underline",
+                    textDecorationThickness: 3,
+                    textUnderlineOffset: 6,
+                  }}
+                >
+                  Management
+                </span>
+              </h2>
+              <p
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 13,
+                  color: "#475569",
+                  marginTop: 10,
+                  maxWidth: 480,
+                }}
+              >
+                Manage your documents, collaborate in real-time, and oversee
+                access permissions across your team.
+              </p>
+            </div>
+
+            {/* Pending Invitations */}
+            {invitations.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <div
+                  style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
+                    marginBottom: 16,
                   }}
                 >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      {inv.title}
-                    </div>
+                  <span className="section-heading">Pending Invitations</span>
+                  <div
+                    style={{
+                      background: "#D97706",
+                      color: "#fff",
+                      fontFamily: "Space Grotesk, sans-serif",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      padding: "2px 8px",
+                      border: "1px solid #0F172A",
+                    }}
+                  >
+                    {invitations.length} new
+                  </div>
+                </div>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                >
+                  {invitations.map((inv) => (
                     <div
+                      key={inv.docId}
                       style={{
-                        fontSize: 12,
-                        color: "var(--text-muted)",
-                        marginTop: 2,
+                        background: "#FFFBEB",
+                        border: "2px solid #0F172A",
+                        boxShadow: "3px 3px 0px #0F172A",
+                        padding: "16px 20px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
                       }}
                     >
-                      Invited by <strong>{inv.ownerUsername}</strong> ·{" "}
-                      {inv.accessLevel} access
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ color: "#D97706", fontSize: 22 }}
+                      >
+                        mail
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            fontFamily: "Space Grotesk, sans-serif",
+                            fontWeight: 700,
+                            fontSize: 14,
+                            color: "#0F172A",
+                          }}
+                        >
+                          {inv.title}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "Inter, sans-serif",
+                            fontSize: 12,
+                            color: "#475569",
+                            marginTop: 2,
+                          }}
+                        >
+                          Invited by <strong>{inv.ownerUsername}</strong> ·{" "}
+                          {inv.accessLevel} access
+                        </div>
+                      </div>
+                      <button
+                        className="btn-primary btn-sm"
+                        disabled={invResp[inv.docId] === "loading"}
+                        onClick={() => respondInvitation(inv.docId, "accept")}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        className="btn-secondary btn-sm"
+                        disabled={invResp[inv.docId] === "loading"}
+                        onClick={() => respondInvitation(inv.docId, "reject")}
+                      >
+                        Decline
+                      </button>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* New Document form */}
+            {showCreate && (
+              <div
+                style={{
+                  background: "#EEF5F8",
+                  border: "2px solid #0F172A",
+                  boxShadow: "4px 4px 0px #0F172A",
+                  padding: "20px",
+                  marginBottom: 24,
+                }}
+              >
+                <div className="section-heading" style={{ marginBottom: 12 }}>
+                  Create New Document
+                </div>
+                <form onSubmit={createDoc} style={{ display: "flex", gap: 10 }}>
+                  <input
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="Document title…"
+                    autoFocus
+                    style={{ flex: 1 }}
+                  />
                   <button
+                    type="submit"
                     className="btn-primary btn-sm"
-                    disabled={invResp[inv.docId] === "loading"}
-                    onClick={() => respondInvitation(inv.docId, "accept")}
+                    disabled={creating}
                   >
-                    Accept
+                    {creating ? "…" : "Create →"}
                   </button>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => setShowCreate(false)}
+                  >
+                    Cancel
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* My Documents */}
+            <section style={{ marginBottom: 40 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span className="section-heading">My Documents</span>
+                  {!loading && (
+                    <span
+                      className="section-heading"
+                      style={{ color: "#3B6978" }}
+                    >
+                      {ownDocs.length} entries
+                    </span>
+                  )}
+                </div>
+                {!showCreate && (
                   <button
                     className="btn-secondary btn-sm"
-                    disabled={invResp[inv.docId] === "loading"}
-                    onClick={() => respondInvitation(inv.docId, "reject")}
+                    onClick={() => setShowCreate(true)}
                   >
-                    Decline
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14 }}
+                    >
+                      add
+                    </span>
+                    New
                   </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* My Documents */}
-        <section style={{ marginBottom: 32 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: 16,
-              gap: 12,
-            }}
-          >
-            <h2
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              My Documents
-            </h2>
-            <div style={{ flex: 1 }} />
-            <button
-              className="btn-primary btn-sm"
-              onClick={() => setShowCreate(true)}
-            >
-              + New Document
-            </button>
-          </div>
-
-          {showCreate && (
-            <form
-              onSubmit={createDoc}
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius)",
-                padding: "16px",
-                display: "flex",
-                gap: 8,
-                marginBottom: 12,
-              }}
-            >
-              <input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Document title…"
-                autoFocus
-                style={{ flex: 1 }}
-              />
-              <button
-                type="submit"
-                className="btn-primary btn-sm"
-                disabled={creating}
-              >
-                {creating ? "…" : "Create"}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary btn-sm"
-                onClick={() => setShowCreate(false)}
-              >
-                Cancel
-              </button>
-            </form>
-          )}
-
-          {loading ? (
-            <div style={{ color: "var(--text-faint)", padding: "20px 0" }}>
-              Loading…
-            </div>
-          ) : ownDocs.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "40px 20px",
-                color: "var(--text-muted)",
-                border: "2px dashed var(--border)",
-                borderRadius: "var(--radius-lg)",
-              }}
-            >
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-              <div style={{ fontWeight: 500 }}>No documents yet</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>
-                Create your first document to get started
+                )}
               </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                gap: 12,
-              }}
-            >
-              {ownDocs.map((doc) => (
-                <DocCard
-                  key={doc.docId}
-                  doc={doc}
-                  isOwner
-                  onOpen={() => onOpenDoc(doc.docId)}
-                  onDelete={() => deleteDoc(doc.docId)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
 
-        {/* Shared With Me */}
-        {sharedDocs.length > 0 && (
-          <section>
-            <h2
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: 16,
-              }}
-            >
-              Shared With Me
-            </h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                gap: 12,
-              }}
-            >
-              {sharedDocs.map((doc) => (
-                <DocCard
-                  key={doc.docId}
-                  doc={doc}
-                  isOwner={false}
-                  onOpen={() => onOpenDoc(doc.docId)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-      </main>
+              {loading ? (
+                <div
+                  style={{
+                    border: "2px solid #0F172A",
+                    padding: "40px",
+                    textAlign: "center",
+                    fontFamily: "Space Grotesk, sans-serif",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    color: "#94A3B8",
+                  }}
+                >
+                  Loading Archive…
+                </div>
+              ) : ownDocs.length === 0 ? (
+                <div
+                  style={{
+                    border: "2px dashed #CBD5E1",
+                    padding: "48px 20px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "Space Grotesk, sans-serif",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      color: "#94A3B8",
+                      marginBottom: 8,
+                    }}
+                  >
+                    No Documents Yet
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      color: "#CBD5E1",
+                    }}
+                  >
+                    Create your first document to get started
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  {ownDocs.map((doc) => (
+                    <DocCard
+                      key={doc.docId}
+                      doc={doc}
+                      isOwner
+                      onOpen={() => onOpenDoc(doc.docId)}
+                      onDelete={() => deleteDoc(doc.docId)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Shared With Me */}
+            {sharedDocs.length > 0 && (
+              <section>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    marginBottom: 16,
+                  }}
+                >
+                  <span className="section-heading">Shared With Me</span>
+                  <span
+                    className="section-heading"
+                    style={{ color: "#3B6978" }}
+                  >
+                    {sharedDocs.length} entries
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  {sharedDocs.map((doc) => (
+                    <DocCard
+                      key={doc.docId}
+                      doc={doc}
+                      isOwner={false}
+                      onOpen={() => onOpenDoc(doc.docId)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
@@ -368,88 +604,125 @@ function DocCard({
   return (
     <div
       style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)",
-        padding: "16px 18px",
+        background: "#fff",
+        border: "2px solid #0F172A",
+        boxShadow: "4px 4px 0px #0F172A",
+        padding: "20px",
         cursor: "pointer",
-        transition: "box-shadow 0.15s, border-color 0.15s",
+        transition: "all 0.1s",
       }}
       onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.transform =
+          "translate(-2px, -2px)";
         (e.currentTarget as HTMLDivElement).style.boxShadow =
-          "var(--shadow-md)";
-        (e.currentTarget as HTMLDivElement).style.borderColor =
-          "var(--border-strong)";
+          "6px 6px 0px #0F172A";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-        (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)";
+        (e.currentTarget as HTMLDivElement).style.transform = "none";
+        (e.currentTarget as HTMLDivElement).style.boxShadow =
+          "4px 4px 0px #0F172A";
       }}
       onClick={onOpen}
     >
-      <div style={{ fontSize: 28, marginBottom: 10 }}>📄</div>
+      {/* Doc header */}
       <div
         style={{
-          fontWeight: 600,
-          fontSize: 14,
-          marginBottom: 4,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          marginBottom: 14,
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            background: isOwner ? "#21515F" : "#EEF5F8",
+            border: "2px solid #0F172A",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 18, color: isOwner ? "#fff" : "#3B6978" }}
+          >
+            description
+          </span>
+        </div>
+        <span
+          style={{
+            fontFamily: "Space Grotesk, sans-serif",
+            fontSize: 9,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            padding: "2px 8px",
+            background: isOwner ? "#EEF5F8" : "#F1F5F9",
+            border: "1px solid #0F172A",
+            color: isOwner ? "#21515F" : "#475569",
+          }}
+        >
+          {isOwner ? "Owner" : "Collab"}
+        </span>
+      </div>
+
+      {/* Title */}
+      <div
+        style={{
+          fontFamily: "Space Grotesk, sans-serif",
+          fontSize: 15,
+          fontWeight: 700,
+          color: "#0F172A",
+          marginBottom: 6,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
+          textTransform: "uppercase",
+          letterSpacing: "-0.01em",
         }}
       >
         {doc.title}
       </div>
+
+      {/* Meta */}
       <div
-        style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}
+        style={{
+          fontFamily: "Inter, sans-serif",
+          fontSize: 11,
+          color: "#94A3B8",
+          marginBottom: 14,
+        }}
       >
         {isOwner
           ? `${doc.collaborators?.length || 0} collaborator${doc.collaborators?.length !== 1 ? "s" : ""}`
           : `by ${doc.ownerUsername}`}{" "}
         · {timeStr}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {isOwner && (
-          <span
-            style={{
-              fontSize: 11,
-              padding: "2px 7px",
-              borderRadius: 4,
-              background: "var(--accent-light)",
-              color: "var(--accent)",
-              fontWeight: 500,
-            }}
-          >
-            Owner
-          </span>
-        )}
-        {!isOwner && (
-          <span
-            style={{
-              fontSize: 11,
-              padding: "2px 7px",
-              borderRadius: 4,
-              background: "var(--bg)",
-              color: "var(--text-muted)",
-              fontWeight: 500,
-            }}
-          >
-            Collaborator
-          </span>
-        )}
-        {isOwner && onDelete && (
+
+      {/* Actions */}
+      {isOwner && onDelete && (
+        <div
+          style={{
+            borderTop: "1px solid #E2E8F0",
+            paddingTop: 12,
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
           <button
             className="btn-ghost btn-sm"
-            style={{ marginLeft: "auto", fontSize: 11 }}
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }}
+            style={{ color: "#DC2626", fontSize: 10 }}
           >
             Delete
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

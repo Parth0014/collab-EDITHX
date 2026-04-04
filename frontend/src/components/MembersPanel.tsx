@@ -51,9 +51,7 @@ export default function MembersPanel({
     try {
       await api.put(
         `/documents/${doc.docId}/collaborators/${collab.collabId}/access`,
-        {
-          accessLevel: newLevel,
-        },
+        { accessLevel: newLevel },
       );
       socket?.emit("access-changed", {
         docId: doc.docId,
@@ -74,11 +72,9 @@ export default function MembersPanel({
   const revokeAccess = async (collab: Collaborator) => {
     const isRemovingSelf = currentUserId === collab.collabId;
     const message = isRemovingSelf
-      ? "Are you sure you want to leave this document?"
-      : `Remove ${collab.username} from this document?`;
-
+      ? "Leave this document?"
+      : `Remove ${collab.username}?`;
     if (!confirm(message)) return;
-
     try {
       await api.delete(
         `/documents/${doc.docId}/collaborators/${collab.collabId}`,
@@ -87,8 +83,6 @@ export default function MembersPanel({
         docId: doc.docId,
         collabId: collab.collabId,
       });
-
-      // Defer state update to avoid lifecycle conflicts
       setTimeout(() => {
         onDocUpdate({
           ...doc,
@@ -98,21 +92,30 @@ export default function MembersPanel({
         });
       }, 0);
     } catch (err: any) {
-      const msg = err.response?.data?.error || "Failed to remove access";
-      alert(msg);
+      alert(err.response?.data?.error || "Failed to remove access");
     }
   };
 
   const pendingInvites =
     doc.invitations?.filter((i) => i.status === "pending") || [];
 
+  const sectionHeadingStyle = {
+    fontFamily: "Space Grotesk, sans-serif",
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.1em",
+    color: "#94A3B8",
+    marginBottom: 10,
+  };
+
   return (
     <aside
       style={{
-        width: 300,
+        width: 296,
         flexShrink: 0,
-        background: "var(--surface)",
-        borderLeft: "1px solid var(--border)",
+        background: "#F4FAFD",
+        borderLeft: "2px solid #0F172A",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -122,56 +125,63 @@ export default function MembersPanel({
       <div
         style={{
           padding: "14px 16px",
-          borderBottom: "1px solid var(--border)",
+          borderBottom: "2px solid #0F172A",
+          background: "#EEF5F8",
           display: "flex",
           alignItems: "center",
+          gap: 8,
         }}
       >
-        <span style={{ fontWeight: 600, fontSize: 14 }}>👥 Members</span>
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 18, color: "#21515F" }}
+        >
+          group
+        </span>
+        <span
+          style={{
+            fontFamily: "Space Grotesk, sans-serif",
+            fontSize: 12,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "#21515F",
+            flex: 1,
+          }}
+        >
+          ACTIVE_ARCHIVISTS.LOG
+        </span>
+        <span
+          style={{
+            fontFamily: "Space Grotesk, sans-serif",
+            fontSize: 9,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            color: "#94A3B8",
+          }}
+        >
+          {(doc.collaborators?.length || 0) + 1} entries
+        </span>
         <button
           className="btn-ghost btn-sm"
-          style={{ marginLeft: "auto" }}
           onClick={onClose}
+          style={{ padding: "2px 6px", marginLeft: 4 }}
         >
           ✕
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: "auto", padding: "16px" }}>
+      <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
         {/* Owner */}
         <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--text-muted)",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              marginBottom: 8,
-            }}
-          >
-            Owner
-          </div>
-          <MemberRow
-            name={doc.ownerUsername}
-            badge="owner"
-            badgeColor="var(--accent)"
-          />
+          <div style={sectionHeadingStyle}>Owner</div>
+          <MemberRow name={doc.ownerUsername} badge="Admin" badgeBg="#3B6978" />
         </div>
 
         {/* Collaborators */}
         {doc.collaborators?.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: 8,
-              }}
-            >
+            <div style={sectionHeadingStyle}>
               Collaborators ({doc.collaborators.length})
             </div>
             {doc.collaborators.map((c) => (
@@ -180,32 +190,42 @@ export default function MembersPanel({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 10,
+                  padding: "10px 12px",
+                  background: "#fff",
+                  border: "2px solid #0F172A",
                   marginBottom: 8,
+                  boxShadow: "2px 2px 0px #0F172A",
                 }}
               >
+                {/* Avatar */}
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: "50%",
-                    background: "var(--accent-light)",
-                    color: "var(--accent)",
+                    width: 32,
+                    height: 32,
+                    background: "#EEF5F8",
+                    border: "2px solid #0F172A",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    fontFamily: "Space Grotesk, sans-serif",
                     fontSize: 12,
                     fontWeight: 700,
+                    color: "#21515F",
                     flexShrink: 0,
                   }}
                 >
                   {c.username[0].toUpperCase()}
                 </div>
+
+                {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
-                      fontWeight: 500,
-                      fontSize: 13,
+                      fontFamily: "Space Grotesk, sans-serif",
+                      fontWeight: 700,
+                      fontSize: 12,
+                      color: "#0F172A",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -215,8 +235,9 @@ export default function MembersPanel({
                   </div>
                   <div
                     style={{
-                      fontSize: 11,
-                      color: "var(--text-faint)",
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 10,
+                      color: "#94A3B8",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -225,6 +246,8 @@ export default function MembersPanel({
                     {c.collabId}
                   </div>
                 </div>
+
+                {/* Actions */}
                 {isOwner ? (
                   <div
                     style={{
@@ -235,19 +258,27 @@ export default function MembersPanel({
                     }}
                   >
                     <select
-                      title="Change collaborator access level"
+                      title="Change access level"
                       value={c.accessLevel}
                       onChange={(e) =>
                         changeAccess(c, e.target.value as "view" | "edit")
                       }
-                      style={{ fontSize: 11, padding: "2px 4px", height: 24 }}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 4px",
+                        height: 22,
+                        width: "auto",
+                        fontFamily: "Space Grotesk, sans-serif",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                      }}
                     >
-                      <option value="edit">Edit</option>
-                      <option value="view">View</option>
+                      <option value="edit">Editor</option>
+                      <option value="view">Viewer</option>
                     </select>
                     <button
                       className="btn-danger btn-sm"
-                      style={{ padding: "3px 7px", fontSize: 11 }}
+                      style={{ padding: "2px 6px", fontSize: 10 }}
                       onClick={() => revokeAccess(c)}
                       title="Revoke access"
                     >
@@ -257,20 +288,23 @@ export default function MembersPanel({
                 ) : currentUserId === c.collabId ? (
                   <button
                     className="btn-danger btn-sm"
-                    style={{ padding: "3px 7px", fontSize: 11 }}
+                    style={{ fontSize: 10 }}
                     onClick={() => revokeAccess(c)}
-                    title="Leave this document"
                   >
                     Leave
                   </button>
                 ) : (
                   <span
                     style={{
-                      fontSize: 11,
-                      padding: "2px 7px",
-                      borderRadius: 4,
-                      background: "var(--bg)",
-                      color: "var(--text-muted)",
+                      fontFamily: "Space Grotesk, sans-serif",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      padding: "2px 6px",
+                      background:
+                        c.accessLevel === "edit" ? "#EEF5F8" : "#F1F5F9",
+                      border: "1px solid #0F172A",
+                      color: c.accessLevel === "edit" ? "#21515F" : "#475569",
                     }}
                   >
                     {c.accessLevel}
@@ -284,17 +318,8 @@ export default function MembersPanel({
         {/* Pending invitations */}
         {pendingInvites.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: 8,
-              }}
-            >
-              Pending Invitations
+            <div style={sectionHeadingStyle}>
+              Pending ({pendingInvites.length})
             </div>
             {pendingInvites.map((inv, i) => (
               <div
@@ -303,16 +328,24 @@ export default function MembersPanel({
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
+                  padding: "8px 10px",
+                  background: "#FFFBEB",
+                  border: "2px solid #D97706",
                   marginBottom: 6,
-                  padding: "6px 10px",
-                  background: "var(--warning-light)",
-                  borderRadius: 6,
                 }}
               >
                 <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, color: "#D97706" }}
+                >
+                  mail
+                </span>
+                <span
                   style={{
-                    fontSize: 12,
                     flex: 1,
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 11,
+                    color: "#0F172A",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -320,7 +353,15 @@ export default function MembersPanel({
                 >
                   {inv.inviteeCollabId}
                 </span>
-                <span style={{ fontSize: 11, color: "var(--warning)" }}>
+                <span
+                  style={{
+                    fontFamily: "Space Grotesk, sans-serif",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    color: "#D97706",
+                  }}
+                >
                   Pending
                 </span>
               </div>
@@ -328,24 +369,35 @@ export default function MembersPanel({
           </div>
         )}
 
-        {/* Invite section (owner only) */}
+        {/* Invite section */}
         {isOwner && (
           <div
             style={{
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              padding: "14px",
-              background: "var(--bg)",
+              background: "#EEF5F8",
+              border: "2px solid #0F172A",
+              boxShadow: "3px 3px 0px #0F172A",
+              padding: 14,
+              marginBottom: 16,
             }}
           >
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
+            <div
+              style={{
+                fontFamily: "Space Grotesk, sans-serif",
+                fontWeight: 700,
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "#21515F",
+                marginBottom: 12,
+              }}
+            >
               Invite by CollabID
             </div>
             <input
               value={inviteId}
               onChange={(e) => setInviteId(e.target.value)}
               placeholder="e.g. alice-a1b2c3"
-              style={{ width: "100%", marginBottom: 8, fontSize: 13 }}
+              style={{ marginBottom: 8 }}
             />
             <div
               style={{
@@ -355,44 +407,57 @@ export default function MembersPanel({
                 marginBottom: 10,
               }}
             >
-              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              <span
+                style={{
+                  fontFamily: "Space Grotesk, sans-serif",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  color: "#475569",
+                }}
+              >
                 Access:
-              </label>
+              </span>
               <select
-                title="Select invitation access level"
+                title="Select access level"
                 value={inviteAccess}
                 onChange={(e) =>
                   setInviteAccess(e.target.value as "edit" | "view")
                 }
-                style={{ flex: 1, fontSize: 12 }}
+                style={{
+                  flex: 1,
+                  fontSize: 11,
+                  fontFamily: "Space Grotesk, sans-serif",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}
               >
-                <option value="edit">Can edit</option>
-                <option value="view">Can view</option>
+                <option value="edit">Can Edit</option>
+                <option value="view">Can View</option>
               </select>
             </div>
             <button
               className="btn-primary btn-sm"
-              style={{ width: "100%" }}
+              style={{ width: "100%", justifyContent: "center" }}
               disabled={inviteStatus === "loading"}
               onClick={sendInvite}
             >
-              {inviteStatus === "loading" ? "Sending…" : "Send Invitation"}
+              {inviteStatus === "loading" ? "Sending…" : "Send Invitation →"}
             </button>
             {inviteMsg && (
               <div
                 style={{
                   marginTop: 8,
-                  fontSize: 12,
-                  padding: "6px 10px",
-                  borderRadius: 5,
+                  padding: "8px 10px",
                   background:
-                    inviteStatus === "success"
-                      ? "var(--success-light)"
-                      : "var(--danger-light)",
-                  color:
-                    inviteStatus === "success"
-                      ? "var(--success)"
-                      : "var(--danger)",
+                    inviteStatus === "success" ? "#F0FDF4" : "#FEF2F2",
+                  border: `2px solid ${inviteStatus === "success" ? "#16A34A" : "#DC2626"}`,
+                  fontFamily: "Space Grotesk, sans-serif",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: inviteStatus === "success" ? "#16A34A" : "#DC2626",
                 }}
               >
                 {inviteMsg}
@@ -401,26 +466,35 @@ export default function MembersPanel({
           </div>
         )}
 
-        {/* Your CollabID reminder */}
+        {/* CollabID reminder */}
         <div
           style={{
-            marginTop: 16,
-            padding: "10px",
-            background: "var(--accent-light)",
-            borderRadius: 6,
+            padding: "12px 14px",
+            background: "#EEF5F8",
+            border: "2px solid #3B6978",
           }}
         >
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--accent)",
-              marginBottom: 3,
+              fontFamily: "Space Grotesk, sans-serif",
+              fontSize: 10,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "#3B6978",
+              marginBottom: 4,
             }}
           >
             Share your CollabID
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          <div
+            style={{
+              fontFamily: "Inter, sans-serif",
+              fontSize: 11,
+              color: "#475569",
+              lineHeight: 1.5,
+            }}
+          >
             Others need your CollabID to invite you to their documents.
           </div>
         </div>
@@ -432,42 +506,64 @@ export default function MembersPanel({
 function MemberRow({
   name,
   badge,
-  badgeColor,
+  badgeBg,
 }: {
   name: string;
   badge: string;
-  badgeColor: string;
+  badgeBg: string;
 }) {
   return (
     <div
-      style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        background: "#fff",
+        border: "2px solid #0F172A",
+        marginBottom: 8,
+        boxShadow: "2px 2px 0px #0F172A",
+      }}
     >
       <div
         style={{
-          width: 28,
-          height: 28,
-          borderRadius: "50%",
-          background: badgeColor,
-          color: "#fff",
+          width: 32,
+          height: 32,
+          background: badgeBg,
+          border: "2px solid #0F172A",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 12,
+          fontFamily: "Space Grotesk, sans-serif",
+          fontSize: 13,
           fontWeight: 700,
+          color: "#fff",
           flexShrink: 0,
         }}
       >
         {name[0]?.toUpperCase()}
       </div>
-      <span style={{ fontWeight: 500, fontSize: 13 }}>{name}</span>
       <span
         style={{
-          marginLeft: "auto",
-          fontSize: 11,
-          padding: "2px 7px",
-          borderRadius: 4,
-          background: "var(--accent-light)",
-          color: "var(--accent)",
+          flex: 1,
+          fontFamily: "Space Grotesk, sans-serif",
+          fontWeight: 700,
+          fontSize: 12,
+          color: "#0F172A",
+        }}
+      >
+        {name}
+      </span>
+      <span
+        style={{
+          fontFamily: "Space Grotesk, sans-serif",
+          fontSize: 9,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          padding: "2px 8px",
+          background: badgeBg,
+          color: "#fff",
+          border: "1px solid #0F172A",
         }}
       >
         {badge}

@@ -26,11 +26,9 @@ function decodeBase64ToUint8Array(base64: string): Uint8Array {
 function encodeUint8ArrayToBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunkSize = 0x8000;
-
   for (let i = 0; i < bytes.length; i += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
-
   return btoa(binary);
 }
 
@@ -47,7 +45,7 @@ export default function EditorPage({ docId, onBack }: Props) {
   >("connecting");
   const [accessLevel, setAccessLevel] = useState<AccessLevel>("view");
   const [roomUsers, setRoomUsers] = useState<RoomUser[]>([]);
-  const [myColor, setMyColor] = useState("#4f46e5");
+  const [myColor, setMyColor] = useState("#3B6978");
   const [showMembers, setShowMembers] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
   const [title, setTitle] = useState("");
@@ -63,7 +61,6 @@ export default function EditorPage({ docId, onBack }: Props) {
     setYdocReady(false);
   }, [docId]);
 
-  // Load document metadata
   useEffect(() => {
     api
       .get(`/documents/${docId}`)
@@ -75,7 +72,6 @@ export default function EditorPage({ docId, onBack }: Props) {
       .catch(() => alert("Failed to load document"));
   }, [docId]);
 
-  // Socket.IO connection
   useEffect(() => {
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
@@ -85,32 +81,32 @@ export default function EditorPage({ docId, onBack }: Props) {
       setStatus("connected");
       socket.emit("join-document", { docId });
     });
-
     socket.on("disconnect", () => setStatus("disconnected"));
-
     socket.on("load-document", ({ state, accessLevel: al, color }: any) => {
       if (state) {
         try {
-          const update = decodeBase64ToUint8Array(state);
-          Y.applyUpdate(ydocRef.current, update, REMOTE_ORIGIN);
+          Y.applyUpdate(
+            ydocRef.current,
+            decodeBase64ToUint8Array(state),
+            REMOTE_ORIGIN,
+          );
         } catch {}
       }
       setAccessLevel(al);
       setMyColor(color);
       setYdocReady(true);
     });
-
     socket.on("receive-changes", (base64Update: string) => {
       try {
-        const update = decodeBase64ToUint8Array(base64Update);
-        Y.applyUpdate(ydocRef.current, update, REMOTE_ORIGIN);
+        Y.applyUpdate(
+          ydocRef.current,
+          decodeBase64ToUint8Array(base64Update),
+          REMOTE_ORIGIN,
+        );
       } catch {}
     });
-
     socket.on("room-users", (users: RoomUser[]) => setRoomUsers(users));
-
     socket.on("title-changed", (newTitle: string) => setTitle(newTitle));
-
     socket.on("access-changed", ({ collabId, accessLevel: al }: any) => {
       if (collabId === user?.collabId) setAccessLevel(al);
       setDoc((d) =>
@@ -124,20 +120,17 @@ export default function EditorPage({ docId, onBack }: Props) {
           : d,
       );
     });
-
     socket.on("access-revoked", ({ collabId }: any) => {
       if (collabId === user?.collabId) {
         alert("Your access to this document has been revoked.");
         onBack();
       }
     });
-
     socket.on("media-added", (asset: any) => {
       setDoc((d) =>
         d ? { ...d, mediaAssets: [...(d.mediaAssets || []), asset] } : d,
       );
     });
-
     socket.on("error", (msg: string) => alert(msg));
 
     return () => {
@@ -146,12 +139,13 @@ export default function EditorPage({ docId, onBack }: Props) {
     };
   }, [docId, token]);
 
-  // Send Yjs updates
   useEffect(() => {
     const handler = (update: Uint8Array, origin: any) => {
       if (origin !== REMOTE_ORIGIN && socketRef.current?.connected) {
-        const base64 = encodeUint8ArrayToBase64(update);
-        socketRef.current.emit("send-changes", { docId, update: base64 });
+        socketRef.current.emit("send-changes", {
+          docId,
+          update: encodeUint8ArrayToBase64(update),
+        });
       }
     };
     ydocRef.current.on("update", handler);
@@ -169,7 +163,15 @@ export default function EditorPage({ docId, onBack }: Props) {
 
   const canEdit = accessLevel === "owner" || accessLevel === "edit";
   const isOwner = accessLevel === "owner";
+
+  const statusLabel =
+    status === "connected"
+      ? "● Live"
+      : status === "disconnected"
+        ? "● Offline"
+        : "● Connecting";
   const statusClass = `editor-status-badge editor-status-${status}`;
+
   const avatarTones = [
     "editor-avatar-tone-1",
     "editor-avatar-tone-2",
@@ -178,24 +180,28 @@ export default function EditorPage({ docId, onBack }: Props) {
     "editor-avatar-tone-5",
     "editor-avatar-tone-6",
   ];
-
   const getAvatarToneClass = (collabId: string) => {
     let hash = 0;
-    for (let i = 0; i < collabId.length; i += 1) {
-      hash += collabId.charCodeAt(i);
-    }
+    for (let i = 0; i < collabId.length; i += 1) hash += collabId.charCodeAt(i);
     return avatarTones[hash % avatarTones.length];
   };
 
   return (
     <div className="editor-page">
-      {/* Top Bar */}
+      {/* ── Top Bar ── */}
       <header className="editor-topbar">
         <button className="btn-ghost btn-sm editor-back-btn" onClick={onBack}>
           ← Back
         </button>
-
         <div className="editor-divider" />
+
+        {/* Document icon */}
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 16, color: "#3B6978" }}
+        >
+          description
+        </span>
 
         {/* Title */}
         {editingTitle ? (
@@ -218,21 +224,12 @@ export default function EditorPage({ docId, onBack }: Props) {
           </span>
         )}
 
-        {/* Status */}
-        <div className={statusClass}>
-          {status === "connected"
-            ? "● Live"
-            : status === "disconnected"
-              ? "● Offline"
-              : "● Connecting"}
-        </div>
-
-        {/* Access badge */}
+        <div className={statusClass}>{statusLabel}</div>
         <div className="editor-access-badge">{accessLevel}</div>
 
         <div className="editor-spacer" />
 
-        {/* Active users avatars */}
+        {/* Room users */}
         <div className="editor-avatars">
           {roomUsers.slice(0, 5).map((u, i) => (
             <div
@@ -248,41 +245,82 @@ export default function EditorPage({ docId, onBack }: Props) {
           )}
         </div>
 
-        {/* Buttons */}
+        {/* Action buttons */}
         <button
           className={`btn-secondary btn-sm ${showMedia ? "editor-top-btn-active" : ""}`}
           onClick={() => setShowMedia((v) => !v)}
         >
-          📎 Media
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+            attach_file
+          </span>
+          Media
         </button>
         <button
           className={`btn-secondary btn-sm ${showMembers ? "editor-top-btn-active" : ""}`}
           onClick={() => setShowMembers((v) => !v)}
         >
-          👥 Members
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+            group
+          </span>
+          Members
         </button>
       </header>
 
-      {/* Toolbar (Tiptap formatting) */}
+      {/* ── Toolbar ── */}
       {canEdit && editorRef.current && <Toolbar editor={editorRef.current} />}
 
-      {/* Main layout */}
+      {/* ── Main Layout ── */}
       <div className="editor-main-layout">
         {/* Editor area */}
         <div className="editor-main-area">
-          <div className="editor-sheet">
-            {ydocReady && (
-              <CollabEditor
-                ydoc={ydocRef.current}
-                socket={socketRef.current}
-                docId={docId}
-                canEdit={canEdit}
-                myColor={myColor}
-                username={user?.username || "Anonymous"}
-                editorRef={editorRef}
-                mediaAssets={doc?.mediaAssets || []}
-              />
-            )}
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div className="editor-sheet">
+              {/* Sheet label tab */}
+              <div className="editor-sheet-label">
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 12 }}
+                >
+                  description
+                </span>
+                {title || "Untitled"}.md
+                <span style={{ color: "#94A3B8", marginLeft: 12 }}>
+                  Edited just now · {user?.username}
+                </span>
+              </div>
+
+              {ydocReady && (
+                <CollabEditor
+                  ydoc={ydocRef.current}
+                  socket={socketRef.current}
+                  docId={docId}
+                  canEdit={canEdit}
+                  myColor={myColor}
+                  username={user?.username || "Anonymous"}
+                  editorRef={editorRef}
+                  mediaAssets={doc?.mediaAssets || []}
+                />
+              )}
+
+              {!ydocReady && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 300,
+                    fontFamily: "Space Grotesk, sans-serif",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    color: "#94A3B8",
+                  }}
+                >
+                  Loading document…
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

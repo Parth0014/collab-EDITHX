@@ -5,14 +5,9 @@ interface Props {
   editor: Editor;
 }
 
-const sep = (
+const Sep = () => (
   <div
-    style={{
-      width: 1,
-      height: 20,
-      background: "var(--border)",
-      margin: "0 4px",
-    }}
+    style={{ width: 2, height: 20, background: "#CBD5E1", margin: "0 4px" }}
   />
 );
 
@@ -37,16 +32,35 @@ function ToolBtn({
         onClick();
       }}
       style={{
-        padding: "5px 8px",
-        borderRadius: 5,
-        fontSize: 13,
-        fontWeight: 500,
-        background: active ? "var(--accent-light)" : "transparent",
-        color: active ? "var(--accent)" : "var(--text-muted)",
+        padding: "4px 8px",
+        fontFamily: "Space Grotesk, sans-serif",
+        fontSize: 11,
+        fontWeight: 700,
+        background: active ? "#21515F" : "transparent",
+        color: active ? "#fff" : "#475569",
+        border: active ? "2px solid #21515F" : "2px solid transparent",
         minWidth: 28,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        cursor: "pointer",
+        transition: "all 0.1s",
+        boxShadow: active ? "2px 2px 0px #0F172A" : "none",
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          (e.currentTarget as HTMLButtonElement).style.background = "#EEF5F8";
+          (e.currentTarget as HTMLButtonElement).style.color = "#21515F";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          (e.currentTarget as HTMLButtonElement).style.background =
+            "transparent";
+          (e.currentTarget as HTMLButtonElement).style.color = "#475569";
+        }
       }}
     >
       {children}
@@ -57,6 +71,7 @@ function ToolBtn({
 export default function Toolbar({ editor }: Props) {
   if (!editor) return null;
 
+  const [currentFontSize, setCurrentFontSize] = React.useState<string>("19px");
   const lastSelectionRef = React.useRef<{ from: number; to: number } | null>(
     null,
   );
@@ -66,16 +81,17 @@ export default function Toolbar({ editor }: Props) {
       const { from, to } = editor.state.selection;
       lastSelectionRef.current = { from, to };
     };
-
     syncSelection();
     editor.on("selectionUpdate", syncSelection);
-
     return () => {
       editor.off("selectionUpdate", syncSelection);
     };
   }, [editor]);
 
-  const setFontSize = (fontSize: string) => {
+  const handleFontSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = e.target.value;
+    setCurrentFontSize(newSize);
+
     const chain = editor.chain();
     const lastSelection = lastSelectionRef.current;
 
@@ -83,20 +99,7 @@ export default function Toolbar({ editor }: Props) {
       chain.setTextSelection(lastSelection);
     }
 
-    chain.focus();
-
-    const attrs = editor.getAttributes("textStyle") || {};
-    if (fontSize === "16px") {
-      const { fontSize: _ignored, ...rest } = attrs;
-      if (Object.keys(rest).length === 0) {
-        chain.unsetMark("textStyle").run();
-      } else {
-        chain.setMark("textStyle", rest).run();
-      }
-      return;
-    }
-
-    chain.setMark("textStyle", { ...attrs, fontSize }).run();
+    chain.focus().setMark("textStyle", { fontSize: newSize }).run();
   };
 
   const addLink = () => {
@@ -111,14 +114,9 @@ export default function Toolbar({ editor }: Props) {
       selectedNode?.type?.name === "image"
         ? selectedNode
         : selection.$from.nodeAfter;
-
-    if (!node || node.type.name !== "image") {
-      return;
-    }
-
+    if (!node || node.type.name !== "image") return;
     const currentWidth = Number.parseInt(String(node.attrs.width || "400"), 10);
     const nextWidth = Math.max(80, Math.min(1200, currentWidth + delta));
-
     editor
       .chain()
       .focus()
@@ -129,9 +127,9 @@ export default function Toolbar({ editor }: Props) {
   return (
     <div
       style={{
-        background: "var(--surface)",
-        borderBottom: "1px solid var(--border)",
-        padding: "4px 16px",
+        background: "#EEF5F8",
+        borderBottom: "2px solid #0F172A",
+        padding: "6px 16px",
         display: "flex",
         alignItems: "center",
         gap: 2,
@@ -139,6 +137,77 @@ export default function Toolbar({ editor }: Props) {
         flexShrink: 0,
       }}
     >
+      {/* Body text label */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "4px 8px",
+          background: "#fff",
+          border: "2px solid #0F172A",
+          marginRight: 4,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "Space Grotesk, sans-serif",
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "#21515F",
+          }}
+        >
+          Body Text
+        </span>
+        <select
+          title="Text size"
+          aria-label="Text size"
+          value={currentFontSize}
+          onMouseDown={() => {
+            const { from, to } = editor.state.selection;
+            lastSelectionRef.current = { from, to };
+          }}
+          onChange={handleFontSizeChange}
+          style={{
+            height: 22,
+            fontSize: 10,
+            padding: "0 4px",
+            border: "1px solid #CBD5E1",
+            background: "#EEF5F8",
+            fontFamily: "Space Grotesk, sans-serif",
+            fontWeight: 700,
+            width: "auto",
+            cursor: "pointer",
+          }}
+        >
+          <option value="19px">14pt</option>
+          <option value="24px">18pt</option>
+          <option value="32px">24pt</option>
+        </select>
+      </div>
+
+      <Sep />
+
+      {/* Undo / Redo */}
+      <ToolBtn
+        title="Undo"
+        active={false}
+        onClick={() => editor.chain().focus().undo().run()}
+      >
+        ↩
+      </ToolBtn>
+      <ToolBtn
+        title="Redo"
+        active={false}
+        onClick={() => editor.chain().focus().redo().run()}
+      >
+        ↪
+      </ToolBtn>
+
+      <Sep />
+
       {/* Headings */}
       <ToolBtn
         title="Heading 1"
@@ -162,34 +231,7 @@ export default function Toolbar({ editor }: Props) {
         H3
       </ToolBtn>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Size:</span>
-        <select
-          title="Text size"
-          aria-label="Text size"
-          value={editor.getAttributes("textStyle")?.fontSize || "16px"}
-          onMouseDown={() => {
-            const { from, to } = editor.state.selection;
-            lastSelectionRef.current = { from, to };
-          }}
-          onChange={(e) => setFontSize(e.target.value)}
-          style={{
-            height: 24,
-            fontSize: 11,
-            padding: "0 6px",
-            border: "1px solid var(--border)",
-            borderRadius: 4,
-            background: "var(--surface)",
-          }}
-        >
-          <option value="16px">Body</option>
-          <option value="18px">Large</option>
-          <option value="22px">XL</option>
-          <option value="28px">XXL</option>
-        </select>
-      </div>
-
-      {sep}
+      <Sep />
 
       {/* Text format */}
       <ToolBtn
@@ -197,28 +239,42 @@ export default function Toolbar({ editor }: Props) {
         active={editor.isActive("bold")}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
-        <strong>B</strong>
+        <strong style={{ fontFamily: "Inter, sans-serif" }}>B</strong>
       </ToolBtn>
       <ToolBtn
         title="Italic"
         active={editor.isActive("italic")}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
-        <em>I</em>
+        <em style={{ fontFamily: "Inter, sans-serif" }}>I</em>
       </ToolBtn>
       <ToolBtn
         title="Underline"
         active={editor.isActive("underline")}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
       >
-        <span style={{ textDecoration: "underline" }}>U</span>
+        <span
+          style={{
+            textDecoration: "underline",
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          U
+        </span>
       </ToolBtn>
       <ToolBtn
         title="Strikethrough"
         active={editor.isActive("strike")}
         onClick={() => editor.chain().focus().toggleStrike().run()}
       >
-        <span style={{ textDecoration: "line-through" }}>S</span>
+        <span
+          style={{
+            textDecoration: "line-through",
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          S
+        </span>
       </ToolBtn>
       <ToolBtn
         title="Highlight"
@@ -227,10 +283,10 @@ export default function Toolbar({ editor }: Props) {
           editor.chain().focus().toggleHighlight({ color: "#fef08a" }).run()
         }
       >
-        🖊
+        HL
       </ToolBtn>
 
-      {sep}
+      <Sep />
 
       {/* Alignment */}
       <ToolBtn
@@ -238,24 +294,24 @@ export default function Toolbar({ editor }: Props) {
         active={editor.isActive({ textAlign: "left" })}
         onClick={() => editor.chain().focus().setTextAlign("left").run()}
       >
-        ≡
+        L
       </ToolBtn>
       <ToolBtn
         title="Align Center"
         active={editor.isActive({ textAlign: "center" })}
         onClick={() => editor.chain().focus().setTextAlign("center").run()}
       >
-        ≡
+        C
       </ToolBtn>
       <ToolBtn
         title="Align Right"
         active={editor.isActive({ textAlign: "right" })}
         onClick={() => editor.chain().focus().setTextAlign("right").run()}
       >
-        ≡
+        R
       </ToolBtn>
 
-      {sep}
+      <Sep />
 
       {/* Lists */}
       <ToolBtn
@@ -280,7 +336,7 @@ export default function Toolbar({ editor }: Props) {
         ☑ Tasks
       </ToolBtn>
 
-      {sep}
+      <Sep />
 
       {/* Blocks */}
       <ToolBtn
@@ -288,7 +344,7 @@ export default function Toolbar({ editor }: Props) {
         active={editor.isActive("blockquote")}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
       >
-        "
+        " "
       </ToolBtn>
       <ToolBtn
         title="Code block"
@@ -298,7 +354,7 @@ export default function Toolbar({ editor }: Props) {
         {"</>"}
       </ToolBtn>
       <ToolBtn title="Link" active={editor.isActive("link")} onClick={addLink}>
-        🔗
+        Link
       </ToolBtn>
       <ToolBtn
         title="Horizontal rule"
@@ -308,26 +364,39 @@ export default function Toolbar({ editor }: Props) {
         —
       </ToolBtn>
 
+      <Sep />
+
+      {/* Image resize */}
       <ToolBtn
         title="Decrease image size"
         active={false}
         onClick={() => resizeSelectedImage(-40)}
       >
-        🖼−
+        Img-
       </ToolBtn>
       <ToolBtn
         title="Increase image size"
         active={false}
         onClick={() => resizeSelectedImage(40)}
       >
-        🖼+
+        Img+
       </ToolBtn>
 
-      {sep}
+      <Sep />
 
       {/* Text color */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Color:</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span
+          style={{
+            fontFamily: "Space Grotesk, sans-serif",
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            color: "#475569",
+          }}
+        >
+          A
+        </span>
         <input
           type="color"
           defaultValue="#1a1a18"
@@ -337,33 +406,15 @@ export default function Toolbar({ editor }: Props) {
             editor.chain().focus().setColor(e.target.value).run()
           }
           style={{
-            width: 24,
-            height: 24,
+            width: 22,
+            height: 22,
             padding: 0,
-            border: "1px solid var(--border)",
-            borderRadius: 4,
+            border: "2px solid #0F172A",
             cursor: "pointer",
+            background: "none",
           }}
         />
       </div>
-
-      {sep}
-
-      {/* Undo/Redo */}
-      <ToolBtn
-        title="Undo"
-        active={false}
-        onClick={() => editor.chain().focus().undo().run()}
-      >
-        ↩
-      </ToolBtn>
-      <ToolBtn
-        title="Redo"
-        active={false}
-        onClick={() => editor.chain().focus().redo().run()}
-      >
-        ↪
-      </ToolBtn>
     </div>
   );
 }

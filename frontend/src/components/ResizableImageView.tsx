@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 
 const MIN_WIDTH = 100;
-const MAX_WIDTH = 800;
+const MAX_WIDTH = 650;
 const DEFAULT_WIDTH = 250;
 
 export default function ResizableImageView({
