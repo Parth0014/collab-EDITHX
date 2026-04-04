@@ -1,27 +1,48 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcryptjs";
 
+export interface IPendingLogin {
+  requestId: string;
+  newSessionId: string;
+  deviceInfo: string;
+  status: "pending" | "approved" | "denied";
+  requestedAt: Date;
+  expiresAt: Date;
+}
+
 export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
   collabId: string;
   avatar: string;
+  // Session tracking
   activeSessionId?: string;
   activeSessionLastSeenAt?: Date;
-  pendingLoginAttemptCount: number;
-  pendingLoginBlockedUntil?: Date;
   tokenVersion: number;
-  pendingLogin?: {
-    requestId: string;
-    newSessionId: string;
-    deviceInfo: string;
-    status: "pending" | "approved" | "denied";
-    requestedAt: Date;
-    expiresAt: Date;
-  };
+  // Pending login approval (only one can exist at a time)
+  pendingLogin?: IPendingLogin;
+  // Rate limiting (mutually exclusive with pendingLogin)
+  loginAttemptCount: number;
+  loginBlockedUntil?: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
+
+const PendingLoginSchema = new Schema<IPendingLogin>(
+  {
+    requestId: { type: String, required: true },
+    newSessionId: { type: String, required: true },
+    deviceInfo: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "denied"],
+      default: "pending",
+    },
+    requestedAt: { type: Date, required: true },
+    expiresAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
 
 const UserSchema = new Schema<IUser>(
   {
@@ -32,17 +53,12 @@ const UserSchema = new Schema<IUser>(
     avatar: { type: String, default: "" },
     activeSessionId: { type: String, default: null },
     activeSessionLastSeenAt: { type: Date, default: null },
-    pendingLoginAttemptCount: { type: Number, default: 0 },
-    pendingLoginBlockedUntil: { type: Date, default: null },
     tokenVersion: { type: Number, default: 0 },
-    pendingLogin: {
-      requestId: { type: String },
-      newSessionId: { type: String },
-      deviceInfo: { type: String },
-      status: { type: String, enum: ["pending", "approved", "denied"] },
-      requestedAt: { type: Date },
-      expiresAt: { type: Date },
-    },
+    pendingLogin: { type: PendingLoginSchema, default: undefined },
+    // Renamed from pendingLoginAttemptCount / pendingLoginBlockedUntil
+    // to make the purpose clear: these are for rate-limiting login attempts
+    loginAttemptCount: { type: Number, default: 0 },
+    loginBlockedUntil: { type: Date, default: null },
   },
   { timestamps: true },
 );
