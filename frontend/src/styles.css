@@ -302,6 +302,7 @@ button {
   background: #f4fafd;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .dashboard-layout {
@@ -309,6 +310,13 @@ button {
   flex: 1;
   overflow: hidden;
   min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+    min-height: auto;
+  }
 }
 
 /* ── Sidebar ── */
@@ -368,10 +376,14 @@ button {
   margin-bottom: 8px;
 }
 
-/* Tablet sidebar: narrower */
+/* ── Tablet sidebar: narrower */
 @media (max-width: 900px) {
   .dashboard-sidebar {
     width: 200px;
+  }
+
+  .dashboard-content {
+    padding: 18px 14px;
   }
 }
 
@@ -386,29 +398,33 @@ button {
     height: auto;
     position: relative;
     top: auto;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     border-right: none;
     border-bottom: 2px solid #0f172a;
-    padding: 10px 16px;
-    flex-wrap: wrap;
+    padding: 12px 12px;
     gap: 8px;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .dashboard-sidebar-brand {
-    padding: 0;
+    padding: 0 0 8px 0;
+    border-bottom: 1px solid #cbd5e1;
+  }
+
+  .dashboard-sidebar-brand-name {
+    font-size: 14px;
   }
 
   .dashboard-sidebar-bottom {
     border-top: none;
-    padding: 0;
+    padding: 8px 0 0 0;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 6px;
     flex: 1;
-    align-items: center;
+    align-items: stretch;
     margin-top: 0;
   }
 
@@ -417,10 +433,11 @@ button {
     display: none;
   }
 
-  /* Buttons: auto width */
+  /* Buttons: full width */
   .dashboard-sidebar-bottom button {
-    width: auto !important;
+    width: 100% !important;
     margin-bottom: 0 !important;
+    justify-content: center;
   }
 }
 
@@ -430,6 +447,13 @@ button {
   overflow: auto;
   padding-bottom: 40px;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .dashboard-main {
+    padding-bottom: 20px;
+  }
 }
 
 .dashboard-top-header {
@@ -447,18 +471,25 @@ button {
 
 @media (max-width: 768px) {
   .dashboard-top-header {
-    padding: 0 16px;
-    height: 52px;
-    gap: 10px;
+    padding: 0 12px;
+    height: 48px;
+    gap: 8px;
+    flex-wrap: wrap;
   }
   .dashboard-top-header h1 {
-    font-size: 16px !important;
+    font-size: 14px !important;
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-top-header {
-    padding: 0 10px;
+    padding: 0 8px;
+    height: auto;
+    min-height: 44px;
+    padding: 8px;
+  }
+  .dashboard-top-header h1 {
+    font-size: 12px !important;
   }
 }
 
@@ -481,13 +512,20 @@ button {
 /* ── Page heading ── */
 .dashboard-page-heading {
   font-family: "Space Grotesk", sans-serif;
-  font-size: clamp(24px, 5vw, 36px);
+  font-size: clamp(20px, 5vw, 36px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.2;
   color: #0f172a;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 600px) {
+  .dashboard-page-heading {
+    font-size: clamp(16px, 4vw, 24px);
+    margin-bottom: 16px;
+  }
 }
 
 /* ── Doc grid ── */
@@ -507,6 +545,13 @@ button {
 @media (max-width: 560px) {
   .doc-grid {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 400px) {
+  .doc-grid {
+    gap: 6px;
   }
 }
 
@@ -522,11 +567,28 @@ button {
   margin-bottom: 8px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .invitation-row {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 12px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 12px;
+  }
+
+  .invitation-row > button {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .invitation-row {
+    padding: 10px 8px;
+    gap: 8px;
+  }
+
+  .invitation-row > button {
+    font-size: 10px !important;
+    padding: 6px 10px !important;
   }
 }
 
@@ -1936,5 +1998,34 @@ body {
   .dashboard-top-header {
     padding-left: max(10px, env(safe-area-inset-left));
     padding-right: max(10px, env(safe-area-inset-right));
+  }
+}
+
+/* ================================================================
+   DASHBOARD — Mobile Improvements
+   ================================================================ */
+
+@media (max-width: 768px) {
+  /* Ensure main content doesn't have scrolling issues */
+  .dashboard-main {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Improve form elements on mobile */
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents zoom on input focus on iOS */
+  }
+
+  /* Improve button tap targets on mobile */
+  @media (hover: none) {
+    button {
+      min-height: 44px;
+    }
+    .btn-sm {
+      min-height: 36px;
+    }
   }
 }

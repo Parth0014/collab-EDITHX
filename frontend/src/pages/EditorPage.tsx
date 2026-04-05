@@ -122,6 +122,17 @@ export default function EditorPage({ docId, onBack }: Props) {
   useEffect(() => {
     console.log("Initializing editor for docId:", docId);
 
+    // 0. Clean up any old socket connection before creating a new one.
+    // This prevents cross-tab pollution when multiple tabs are open.
+    if (socketRef.current) {
+      console.log("Cleaning up old socket connection");
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    // Track if this effect's socket is still active (hasn't been replaced by a new docId change)
+    let isActive = true;
+
     // 1. Create a fresh ydoc for this document session.
     const freshYdoc = new Y.Doc();
     ydocRef.current = freshYdoc;
@@ -162,10 +173,19 @@ export default function EditorPage({ docId, onBack }: Props) {
     socket.on(
       "load-document",
       ({ state, accessLevel: al, color, externalTasks: tasks }: any) => {
+        // Guard: ignore if this effect has been replaced by a newer one
+        if (!isActive) {
+          console.log(
+            "Ignoring load-document for stale effect (tab refreshed)",
+          );
+          return;
+        }
+
         window.clearTimeout(readyFallback);
         console.log("Document loaded from server", {
           hasState: !!state,
           taskCount: tasks?.length || 0,
+          forDocId: docId,
         });
 
         if (state) {
@@ -200,7 +220,16 @@ export default function EditorPage({ docId, onBack }: Props) {
     );
 
     // FIX: Remote changes from other collaborators → apply to the same freshYdoc.
+    // Guard against applying updates to the wrong document (multi-tab isolation).
     socket.on("receive-changes", (base64Update: string) => {
+      // Ignore if this effect has been replaced by a newer one (docId changed)
+      if (!isActive) {
+        console.log("Ignoring receive-changes for stale effect");
+        return;
+      }
+
+      // CRITICAL: Only apply changes to the current document's ydoc
+      // to prevent content from other documents leaking into this tab
       try {
         Y.applyUpdate(
           freshYdoc,
@@ -212,9 +241,18 @@ export default function EditorPage({ docId, onBack }: Props) {
       }
     });
 
-    socket.on("room-users", (users: RoomUser[]) => setRoomUsers(users));
-    socket.on("title-changed", (newTitle: string) => setTitle(newTitle));
+    socket.on("room-users", (users: RoomUser[]) => {
+      if (!isActive) return;
+      setRoomUsers(users);
+    });
+
+    socket.on("title-changed", (newTitle: string) => {
+      if (!isActive) return;
+      setTitle(newTitle);
+    });
+
     socket.on("access-changed", ({ collabId, accessLevel: al }: any) => {
+      if (!isActive) return;
       if (collabId === user?.collabId) setAccessLevel(al);
       setDoc((d) =>
         d
@@ -232,6 +270,7 @@ export default function EditorPage({ docId, onBack }: Props) {
     // entry with the same text (added by this client) with the real one.
     // For other clients there are no temp entries so it just appends normally.
     socket.on("task-added", (task: ExternalTask) => {
+      if (!isActive) return;
       setExternalTasks((prev) => {
         const tempIndex = prev.findIndex(
           (t) => t.id.startsWith("temp-") && t.text === task.text,
@@ -251,6 +290,7 @@ export default function EditorPage({ docId, onBack }: Props) {
     socket.on(
       "task-toggled",
       ({ taskId, done }: { taskId: string; done: boolean }) => {
+        if (!isActive) return;
         setExternalTasks((prev) =>
           prev.map((t) => (t.id === taskId ? { ...t, done } : t)),
         );
@@ -259,6 +299,7 @@ export default function EditorPage({ docId, onBack }: Props) {
 
     // 4. Cleanup: disconnect socket and destroy ydoc.
     return () => {
+      isActive = false; // Mark this effect as no longer active, ignore future events
       window.clearTimeout(readyFallback);
       freshYdoc.off("update", handleYdocUpdate);
       freshYdoc.destroy();
