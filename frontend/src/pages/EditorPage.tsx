@@ -120,6 +120,8 @@ export default function EditorPage({ docId, onBack }: Props) {
   // This guarantees the ydoc instance, its update listener, and the socket
   // all reference the same object — no stale closures.
   useEffect(() => {
+    console.log("Initializing editor for docId:", docId);
+
     // 1. Create a fresh ydoc for this document session.
     const freshYdoc = new Y.Doc();
     ydocRef.current = freshYdoc;
@@ -143,8 +145,12 @@ export default function EditorPage({ docId, onBack }: Props) {
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
 
-    // Fallback: if server never sends load-document, show editor anyway.
-    const readyFallback = window.setTimeout(() => setYdocReady(true), 1500);
+    // Fallback: if server never sends load-document, show editor anyway (after longer wait).
+    // Increased to 3000ms to account for network latency and server processing time.
+    const readyFallback = window.setTimeout(() => {
+      console.warn("Document load timeout - showing editor with current state");
+      setYdocReady(true);
+    }, 3000);
 
     socket.on("connect", () => {
       setStatus("connected");
@@ -157,6 +163,10 @@ export default function EditorPage({ docId, onBack }: Props) {
       "load-document",
       ({ state, accessLevel: al, color, externalTasks: tasks }: any) => {
         window.clearTimeout(readyFallback);
+        console.log("Document loaded from server", {
+          hasState: !!state,
+          taskCount: tasks?.length || 0,
+        });
 
         if (state) {
           try {
@@ -166,6 +176,7 @@ export default function EditorPage({ docId, onBack }: Props) {
               decodeBase64ToUint8Array(state),
               REMOTE_ORIGIN,
             );
+            console.log("Document state applied successfully");
           } catch (error) {
             console.error("Failed to apply document state:", error);
           }

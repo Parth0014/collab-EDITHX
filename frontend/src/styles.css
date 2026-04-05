@@ -1035,9 +1035,10 @@ button {
   }
 
   .external-tasks-handle {
-    position: fixed;
-    right: 6px;
-    top: 104px;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 101;
     padding: 4px 8px;
     min-width: auto;
@@ -1046,17 +1047,15 @@ button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 26px;
+    height: auto;
   }
 }
 
 @media (max-width: 480px) {
   .external-tasks-handle {
-    right: 4px;
-    top: 100px;
+    right: 6px;
     padding: 3px 6px;
     font-size: 8px;
-    height: 24px;
   }
 }
 
