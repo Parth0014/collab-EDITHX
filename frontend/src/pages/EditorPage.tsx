@@ -72,28 +72,27 @@ export default function EditorPage({ docId, onBack }: Props) {
   const [externalTasks, setExternalTasks] = useState<ExternalTask[]>([]);
   const [tasksPanelOpen, setTasksPanelOpen] = useState(false);
   const socketRef = useRef<Socket | null>(null);
-  const ydocRef = useRef(new Y.Doc());
+
+  // FIX: Use state for ydoc so React re-renders CollabEditor with the new
+  // instance whenever docId changes. A ref alone won't trigger re-renders.
+  const [ydoc, setYdoc] = useState<Y.Doc>(() => new Y.Doc());
+  const ydocRef = useRef<Y.Doc>(ydoc); // keep a ref in sync for use in callbacks
+
   const editorRef = useRef<Editor | null>(null);
   const [ydocReady, setYdocReady] = useState(false);
 
   useEffect(() => {
-    ydocRef.current.destroy();
-    ydocRef.current = new Y.Doc();
-
-    // Initialize with a valid empty document structure
-    const yXmlFragment = ydocRef.current.getXmlFragment("shared");
-    if (yXmlFragment.length === 0) {
-      const paragraph = new Y.XmlElement("paragraph");
-      yXmlFragment.insert(0, [paragraph]);
-    }
-
-    setYdocReady(false);
-  }, [docId]);
+    try {
+      localStorage.setItem(
+        "collab_hidden_requests",
+        JSON.stringify(hiddenRequests),
+      );
+    } catch {}
+  }, [hiddenRequests]);
 
   // Clear ghost notifications from localStorage on mount
   useEffect(() => {
     try {
-      // Remove old notification-related localStorage keys
       localStorage.removeItem("collab_notifications");
       localStorage.removeItem("notifications");
     } catch {}
@@ -117,36 +116,58 @@ export default function EditorPage({ docId, onBack }: Props) {
       });
   }, [docId]);
 
+  // FIX: All ydoc lifecycle + socket setup is in ONE effect keyed on docId.
+  // This guarantees the ydoc instance, its update listener, and the socket
+  // all reference the same object — no stale closures.
   useEffect(() => {
+    // 1. Create a fresh ydoc for this document session.
+    const freshYdoc = new Y.Doc();
+    ydocRef.current = freshYdoc;
+    setYdoc(freshYdoc);
+    setYdocReady(false);
+    setStatus("connecting");
+
+    // 2. Wire the ydoc update → socket emit (local edits → broadcast).
+    //    This closure captures freshYdoc directly, so it's always correct.
+    const handleYdocUpdate = (update: Uint8Array, origin: any) => {
+      if (origin !== REMOTE_ORIGIN && socketRef.current?.connected) {
+        socketRef.current.emit("send-changes", {
+          docId,
+          update: encodeUint8ArrayToBase64(update),
+        });
+      }
+    };
+    freshYdoc.on("update", handleYdocUpdate);
+
+    // 3. Connect socket.
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
+
+    // Fallback: if server never sends load-document, show editor anyway.
     const readyFallback = window.setTimeout(() => setYdocReady(true), 1500);
 
     socket.on("connect", () => {
       setStatus("connected");
       socket.emit("join-document", { docId });
     });
+
     socket.on("disconnect", () => setStatus("disconnected"));
+
     socket.on(
       "load-document",
       ({ state, accessLevel: al, color, externalTasks: tasks }: any) => {
+        window.clearTimeout(readyFallback);
+
         if (state) {
           try {
+            // Apply saved server state into the fresh ydoc.
             Y.applyUpdate(
-              ydocRef.current,
+              freshYdoc,
               decodeBase64ToUint8Array(state),
               REMOTE_ORIGIN,
             );
           } catch (error) {
             console.error("Failed to apply document state:", error);
-            // Recover by reinitializing with empty document
-            ydocRef.current.destroy();
-            ydocRef.current = new Y.Doc();
-            const yXmlFragment = ydocRef.current.getXmlFragment("shared");
-            if (yXmlFragment.length === 0) {
-              const paragraph = new Y.XmlElement("paragraph");
-              yXmlFragment.insert(0, [paragraph]);
-            }
           }
         }
 
@@ -162,21 +183,24 @@ export default function EditorPage({ docId, onBack }: Props) {
 
         setAccessLevel(al);
         setMyColor(color);
+        // FIX: Only show editor AFTER the saved state has been applied.
         setYdocReady(true);
       },
     );
+
+    // FIX: Remote changes from other collaborators → apply to the same freshYdoc.
     socket.on("receive-changes", (base64Update: string) => {
       try {
         Y.applyUpdate(
-          ydocRef.current,
+          freshYdoc,
           decodeBase64ToUint8Array(base64Update),
           REMOTE_ORIGIN,
         );
       } catch (error) {
         console.error("Failed to apply remote changes:", error);
-        // Silently fail - the document will continue with last known good state
       }
     });
+
     socket.on("room-users", (users: RoomUser[]) => setRoomUsers(users));
     socket.on("title-changed", (newTitle: string) => setTitle(newTitle));
     socket.on("access-changed", ({ collabId, accessLevel: al }: any) => {
@@ -193,25 +217,30 @@ export default function EditorPage({ docId, onBack }: Props) {
       );
     });
 
+    socket.on("task-added", (task: ExternalTask) => {
+      setExternalTasks((prev) => [...prev, task]);
+    });
+
+    socket.on("task-toggled", (taskId: string) => {
+      setExternalTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t)),
+      );
+    });
+
+    // 4. Cleanup: disconnect socket and destroy ydoc.
     return () => {
       window.clearTimeout(readyFallback);
+      freshYdoc.off("update", handleYdocUpdate);
+      freshYdoc.destroy();
       socket.disconnect();
+      socketRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docId, token]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "collab_hidden_requests",
-        JSON.stringify(hiddenRequests),
-      );
-    } catch {}
-  }, [hiddenRequests]);
 
   // Close notifications panel when clicking outside of it
   useEffect(() => {
     if (!notificationsOpen) return;
-
     const handleClickOutside = (e: MouseEvent) => {
       if (
         notificationsRef.current &&
@@ -223,23 +252,9 @@ export default function EditorPage({ docId, onBack }: Props) {
         setNotificationsOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [notificationsOpen]);
-
-  useEffect(() => {
-    const handler = (update: Uint8Array, origin: any) => {
-      if (origin !== REMOTE_ORIGIN && socketRef.current?.connected) {
-        socketRef.current.emit("send-changes", {
-          docId,
-          update: encodeUint8ArrayToBase64(update),
-        });
-      }
-    };
-    ydocRef.current.on("update", handler);
-    return () => ydocRef.current.off("update", handler);
-  }, [docId]);
 
   const saveTitle = async () => {
     if (!title.trim()) return;
@@ -255,15 +270,11 @@ export default function EditorPage({ docId, onBack }: Props) {
 
   const handleAddExternalTask = () => {
     if (!canEdit) return;
-
     const taskText = prompt("Enter task text:");
     if (taskText === null) return;
-
     const trimmed = taskText.trim();
     if (!trimmed) return;
-
     setTasksPanelOpen(true);
-
     socketRef.current?.emit("task-added", { docId, text: trimmed });
   };
 
@@ -358,7 +369,6 @@ export default function EditorPage({ docId, onBack }: Props) {
         </button>
         <div className="editor-divider" />
 
-        {/* Document icon */}
         <span
           className="material-symbols-outlined"
           style={{ fontSize: 16, color: "#3B6978" }}
@@ -366,7 +376,6 @@ export default function EditorPage({ docId, onBack }: Props) {
           description
         </span>
 
-        {/* Title */}
         {editingTitle ? (
           <input
             className="editor-title-input"
@@ -426,10 +435,7 @@ export default function EditorPage({ docId, onBack }: Props) {
                 {pendingLoginRequest &&
                   hiddenRequests.includes(pendingLoginRequest.requestId) && (
                     <div
-                      style={{
-                        borderTop: "1px solid #E2E8F0",
-                        paddingTop: 8,
-                      }}
+                      style={{ borderTop: "1px solid #E2E8F0", paddingTop: 8 }}
                     >
                       <div style={{ fontSize: 12, fontWeight: 700 }}>
                         {pendingLoginRequest.deviceInfo}
@@ -445,7 +451,6 @@ export default function EditorPage({ docId, onBack }: Props) {
                         <button
                           className="btn-secondary btn-sm"
                           onClick={() => {
-                            // Keep this device - deny from notification panel
                             resolvePendingLoginRequest(
                               pendingLoginRequest.requestId,
                               "deny",
@@ -463,7 +468,6 @@ export default function EditorPage({ docId, onBack }: Props) {
                         <button
                           className="btn-primary btn-sm"
                           onClick={() => {
-                            // Allow other device - approve from notification panel
                             resolvePendingLoginRequest(
                               pendingLoginRequest.requestId,
                               "approve",
@@ -481,7 +485,6 @@ export default function EditorPage({ docId, onBack }: Props) {
                         <button
                           className="btn-ghost btn-sm"
                           onClick={() => {
-                            // Mute - remove from notification list
                             setHiddenRequests((h) =>
                               h.filter(
                                 (id) => id !== pendingLoginRequest.requestId,
@@ -515,7 +518,6 @@ export default function EditorPage({ docId, onBack }: Props) {
           )}
         </div>
 
-        {/* Action buttons */}
         <button
           className={`btn-secondary btn-sm ${showMedia ? "editor-top-btn-active" : ""}`}
           onClick={() => setShowMedia((v) => !v)}
@@ -543,7 +545,6 @@ export default function EditorPage({ docId, onBack }: Props) {
 
       {/* ── Main Layout ── */}
       <div className="editor-main-layout">
-        {/* Editor area */}
         <div className="editor-main-area">
           <div className="editor-content-row">
             <button
@@ -569,7 +570,6 @@ export default function EditorPage({ docId, onBack }: Props) {
                   {externalTasks.length} total
                 </div>
               </div>
-
               <div className="external-tasks-table-wrap">
                 <table className="external-tasks-table">
                   <thead>
@@ -617,7 +617,6 @@ export default function EditorPage({ docId, onBack }: Props) {
 
             <div className="editor-sheet-wrap">
               <div className="editor-sheet">
-                {/* Sheet label tab */}
                 <div className="editor-sheet-label">
                   <span
                     className="material-symbols-outlined"
@@ -631,9 +630,14 @@ export default function EditorPage({ docId, onBack }: Props) {
                   </span>
                 </div>
 
+                {/* FIX: Key on ydoc identity so CollabEditor fully remounts
+                    when a new ydoc is created for a new docId. This ensures
+                    the Tiptap Collaboration extension always binds to the
+                    current ydoc instance, not a stale one. */}
                 {ydocReady && (
                   <CollabEditor
-                    ydoc={ydocRef.current}
+                    key={ydoc.guid}
+                    ydoc={ydoc}
                     socket={socketRef.current}
                     docId={docId}
                     canEdit={canEdit}
@@ -667,7 +671,6 @@ export default function EditorPage({ docId, onBack }: Props) {
           </div>
         </div>
 
-        {/* Members sidebar */}
         {showMembers && doc && (
           <MembersPanel
             doc={doc}
@@ -679,7 +682,6 @@ export default function EditorPage({ docId, onBack }: Props) {
           />
         )}
 
-        {/* Media sidebar */}
         {showMedia && doc && (
           <MediaPanel
             doc={doc}
