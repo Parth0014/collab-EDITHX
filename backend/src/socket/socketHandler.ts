@@ -179,7 +179,7 @@ export function setupSocket(io: Server) {
         const tracked = socketAwarenessClients.get(socket.id)!;
         clientIds.forEach((id) => tracked.add(id));
 
-        socket.to(docId).emit("awareness-update", { update });
+        io.to(docId).emit("awareness-update", { update });
       },
     );
 

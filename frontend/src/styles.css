@@ -1630,6 +1630,8 @@ button {
   -webkit-user-select: none !important;
   position: relative;
   word-break: normal;
+  /* Override ProseMirror * cursor: text — caret is not editable text */
+  cursor: default;
 }
 
 .collaboration-cursor__label {
@@ -1652,6 +1654,8 @@ button {
   letter-spacing: 0.05em;
   /* Ensure it renders above the document content */
   z-index: 10;
+  /* Override ProseMirror * cursor: text — label is not editable */
+  cursor: default;
 }
 
 /* ================================================================
