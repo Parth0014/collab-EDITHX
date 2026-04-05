@@ -628,6 +628,57 @@ export default function EditorPage({ docId, onBack }: Props) {
       </header>
 
       {/* ── Toolbar ── */}
+      {!canEdit && (
+        <div
+          style={{
+            background: "#eef5f8",
+            borderBottom: "2px solid #0f172a",
+            padding: "6px 16px",
+            height: "44px",
+          }}
+        />
+      )}
+      {canEdit && !editorRef.current && (
+        <div
+          style={{
+            background: "#eef5f8",
+            borderBottom: "2px solid #0f172a",
+            padding: "6px 16px",
+            display: "flex",
+            gap: "6px",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              width: "60px",
+              height: "24px",
+              background: "#cbd5e1",
+              borderRadius: "2px",
+              animation: "pulse 1.5s infinite",
+            }}
+          />
+          <div
+            style={{
+              width: "40px",
+              height: "24px",
+              background: "#cbd5e1",
+              borderRadius: "2px",
+              animation: "pulse 1.5s infinite",
+            }}
+          />
+          <div
+            style={{
+              width: "50px",
+              height: "24px",
+              background: "#cbd5e1",
+              borderRadius: "2px",
+              animation: "pulse 1.5s infinite",
+            }}
+          />
+        </div>
+      )}
       {canEdit && editorRef.current && (
         <Toolbar
           editor={editorRef.current}
@@ -636,6 +687,13 @@ export default function EditorPage({ docId, onBack }: Props) {
           onToggleTasksPanel={() => setTasksPanelOpen((v) => !v)}
         />
       )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+      `}</style>
 
       {/* ── Main Layout ── */}
       <div className="editor-main-layout">
