@@ -30,9 +30,9 @@ import { Socket } from "socket.io-client";
 import { MediaAsset } from "../types";
 import ResizableImageView from "./ResizableImageView";
 
+// ── FontSize extension ──────────────────────────────────────────────────────
 const FontSize = Extension.create({
   name: "fontSize",
-
   addGlobalAttributes() {
     return [
       {
@@ -42,13 +42,8 @@ const FontSize = Extension.create({
             default: null,
             parseHTML: (element) => element.style.fontSize || null,
             renderHTML: (attributes) => {
-              if (!attributes.fontSize) {
-                return {};
-              }
-
-              return {
-                style: `font-size: ${attributes.fontSize}`,
-              };
+              if (!attributes.fontSize) return {};
+              return { style: `font-size: ${attributes.fontSize}` };
             },
           },
         },
@@ -57,6 +52,7 @@ const FontSize = Extension.create({
   },
 });
 
+// ── ResizableImage extension ────────────────────────────────────────────────
 const ResizableImage = ImageExtension.extend({
   addAttributes() {
     return {
@@ -65,22 +61,88 @@ const ResizableImage = ImageExtension.extend({
         default: null,
         parseHTML: (element) => element.getAttribute("data-width") || null,
         renderHTML: (attributes) => {
-          if (!attributes.width) {
-            return {};
-          }
-          return {
-            "data-width": attributes.width,
-          };
+          if (!attributes.width) return {};
+          return { "data-width": attributes.width };
         },
       },
     };
   },
-
   addNodeView() {
     return ReactNodeViewRenderer(ResizableImageView);
   },
 });
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function encodeBytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function toAbsoluteUrl(rawHref: string): string {
+  const value = rawHref.trim();
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+}
+
+// ── Cursor renderer ─────────────────────────────────────────────────────────
+// The CollaborationCursor `render` option takes a single `user` Record and
+// must return one HTMLElement (the caret). The name label is a child of it.
+// Both elements get pointer-events:none so they NEVER block text selection
+// or clicks — this is the fix for the "can't select through cursors" UX bug.
+function renderCursor(user: Record<string, any>): HTMLElement {
+  const color: string = user.color ?? "#3b6978";
+  const name: string = user.name ?? "?";
+
+  // Name label — floats above the caret line
+  const label = document.createElement("span");
+  label.classList.add("collaboration-cursor__label");
+  label.textContent = name;
+  label.style.cssText = [
+    `background-color: ${color}`,
+    "color: #fff",
+    "font-family: Space Grotesk, sans-serif",
+    "font-size: 10px",
+    "font-weight: 700",
+    "padding: 2px 6px",
+    "position: absolute",
+    "top: -1.5em",
+    "left: -1px",
+    "white-space: nowrap",
+    "text-transform: uppercase",
+    "letter-spacing: 0.05em",
+    "border-radius: 2px 2px 2px 0",
+    // KEY: label must never intercept pointer events
+    "pointer-events: none",
+    "user-select: none",
+    "-webkit-user-select: none",
+    "z-index: 10",
+  ].join(";");
+
+  // Caret line
+  const caret = document.createElement("span");
+  caret.classList.add("collaboration-cursor__caret");
+  caret.style.cssText = [
+    `border-left: 2px solid ${color}`,
+    "position: relative",
+    "margin-left: -1px",
+    "margin-right: -1px",
+    "word-break: normal",
+    // KEY: caret must never intercept pointer events
+    "pointer-events: none",
+    "user-select: none",
+    "-webkit-user-select: none",
+  ].join(";");
+
+  caret.appendChild(label);
+  return caret;
+}
+
+// ── Props ───────────────────────────────────────────────────────────────────
 interface Props {
   ydoc: Y.Doc;
   socket: Socket | null;
@@ -92,36 +154,7 @@ interface Props {
   mediaAssets: MediaAsset[];
 }
 
-function socketIdToNumber(socketId: string): number {
-  let hash = 0;
-  for (let i = 0; i < socketId.length; i += 1) {
-    hash = (hash * 31 + socketId.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
-
-function encodeBytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-
-  return btoa(binary);
-}
-
-function toAbsoluteUrl(rawHref: string): string {
-  const value = rawHref.trim();
-  if (!value) return "";
-
-  if (/^https?:\/\//i.test(value)) {
-    return value;
-  }
-
-  return `https://${value}`;
-}
-
+// ── Component ────────────────────────────────────────────────────────────────
 export default function CollabEditor({
   ydoc,
   socket,
@@ -133,9 +166,9 @@ export default function CollabEditor({
   mediaAssets,
 }: Props) {
   const awarenessRef = useRef<Awareness>(new Awareness(ydoc));
-
   const awareness = awarenessRef.current;
 
+  // ── Awareness sync ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!socket) return;
 
@@ -144,22 +177,12 @@ export default function CollabEditor({
         added,
         updated,
         removed,
-      }: {
-        added: number[];
-        updated: number[];
-        removed: number[];
-      },
-      origin: any,
+      }: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown,
     ) => {
-      if (origin === "remote-awareness") {
-        return;
-      }
-
+      if (origin === "remote-awareness") return;
       const changedClients = [...added, ...updated, ...removed];
-      if (changedClients.length === 0) {
-        return;
-      }
-
+      if (changedClients.length === 0) return;
       const awarenessUpdate = encodeAwarenessUpdate(awareness, changedClients);
       socket.emit("awareness-update", {
         docId,
@@ -175,7 +198,7 @@ export default function CollabEditor({
         );
         applyAwarenessUpdate(awareness, updateBytes, "remote-awareness");
       } catch {
-        // Ignore malformed awareness packets from older clients.
+        // Ignore malformed awareness packets.
       }
     };
 
@@ -198,98 +221,117 @@ export default function CollabEditor({
     };
   }, [awareness, docId, socket]);
 
+  // ── Editor setup ──────────────────────────────────────────────────────────
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        // REQUIRED when using Collaboration — Yjs handles undo/redo.
         history: false,
+
+        // FIX: keepMarks/keepAttributes preserve formatting (bold, color, etc.)
+        // when Enter is pressed inside a list item to continue the list.
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: true,
+          HTMLAttributes: { class: "bullet-list-node" },
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: true,
+          HTMLAttributes: { class: "ordered-list-node" },
+        },
+        listItem: {
+          HTMLAttributes: { class: "list-item-node" },
+        },
+
         blockquote: {
-          HTMLAttributes: {
-            class: "blockquote-node",
-          },
+          HTMLAttributes: { class: "blockquote-node" },
         },
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
-        },
+        heading: { levels: [1, 2, 3, 4, 5, 6] },
         paragraph: {
-          HTMLAttributes: {
-            class: "paragraph-node",
-          },
+          HTMLAttributes: { class: "paragraph-node" },
         },
+
+        // FIX: Disable hard-break (Shift+Enter → <br>) so it doesn't compete
+        // with the list item's own Enter key handler and break list continuation.
+        hardBreak: false,
       }),
+
       Collaboration.configure({ document: ydoc }),
+
+      // FIX: Pass our custom render function which sets pointer-events:none
+      // on both the caret and the label, so other users' cursors never
+      // intercept mouse clicks or drag-selection.
       CollaborationCursor.configure({
-        provider: {
-          awareness,
-        } as any,
+        provider: { awareness } as any,
         user: { name: username, color: myColor },
+        render: renderCursor,
       }),
+
       Placeholder.configure({
         placeholder: "Start writing… Invite others with your CollabID",
       }),
+
       Underline,
-      TextAlign.configure({ types: ["heading", "paragraph", "blockquote"] }),
+
+      // FIX: Include listItem so text alignment works inside list items too.
+      TextAlign.configure({
+        types: ["heading", "paragraph", "blockquote", "listItem"],
+      }),
+
       Highlight.configure({ multicolor: true }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
+
+      TaskList.configure({
+        HTMLAttributes: { class: "task-list-node" },
+      }),
+      TaskItem.configure({
+        nested: true,
+        HTMLAttributes: { class: "task-item-node" },
+      }),
+
       Link.configure({
         openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
         HTMLAttributes: {
           title: "Ctrl/Cmd + Left Click to open link",
+          rel: "noopener noreferrer",
         },
       }),
+
       ResizableImage.configure({ inline: false, allowBase64: true }),
+
       Color,
       TextStyle,
       FontSize,
     ],
+
     editable: canEdit,
+
     editorProps: {
       attributes: { class: "prose-editor" },
+
       handleDOMEvents: {
         click: (_view, event) => {
           const target = event.target as HTMLElement | null;
           const mouseEvent = event as MouseEvent;
           const isCtrlOrCmd = mouseEvent.ctrlKey || mouseEvent.metaKey;
-
-          if (!isCtrlOrCmd || !target) {
-            return false;
-          }
-
+          if (!isCtrlOrCmd || !target) return false;
           const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
-          if (!anchor) {
-            return false;
-          }
-
+          if (!anchor) return false;
           const href = anchor.getAttribute("href") || "";
-          if (!href || href.startsWith("#")) {
-            return false;
-          }
-
+          if (!href || href.startsWith("#")) return false;
           const absoluteUrl = toAbsoluteUrl(href);
-          if (!absoluteUrl) {
-            return false;
-          }
-
+          if (!absoluteUrl) return false;
           event.preventDefault();
           window.open(absoluteUrl, "_blank", "noopener,noreferrer");
           return true;
         },
       },
     },
-    onUpdate: ({ editor: ed }) => {
-      try {
-        // Validate the document structure on every update
-        ed.state.doc.content.forEach((node) => {
-          if (!node.type.isBlock && !node.type.isText) {
-            console.warn("Invalid node type detected:", node.type.name);
-          }
-        });
-      } catch (error) {
-        console.error("Document validation error:", error);
-      }
-    },
   });
 
+  // ── Sync editorRef ────────────────────────────────────────────────────────
   useEffect(() => {
     editorRef.current = editor;
     return () => {
@@ -297,17 +339,17 @@ export default function CollabEditor({
     };
   }, [editor, editorRef]);
 
+  // ── Sync canEdit ──────────────────────────────────────────────────────────
   useEffect(() => {
     editor?.setEditable(canEdit);
   }, [canEdit, editor]);
 
+  // ── Sync awareness user ───────────────────────────────────────────────────
   useEffect(() => {
-    awareness.setLocalStateField("user", {
-      name: username,
-      color: myColor,
-    });
+    awareness.setLocalStateField("user", { name: username, color: myColor });
   }, [awareness, myColor, username]);
 
+  // ── Cleanup ───────────────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       awareness.setLocalState(null);

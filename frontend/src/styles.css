@@ -1527,14 +1527,6 @@ button {
   font-weight: 600;
   margin: 0.8em 0 0.3em;
 }
-.ProseMirror ul,
-.ProseMirror ol {
-  padding-left: 1.5em;
-  margin-bottom: 0.75em;
-}
-.ProseMirror li {
-  margin-bottom: 0.25em;
-}
 .ProseMirror blockquote {
   border-left: 4px solid var(--primary);
   padding-left: 1em;
@@ -1621,17 +1613,27 @@ button {
   font-family: "Space Grotesk", sans-serif;
 }
 
-/* Collaboration cursors */
+/* ================================================================
+   COLLAB CURSOR FIX
+   The caret and label must NEVER intercept pointer events, otherwise
+   users cannot click or drag-select through another user's cursor.
+   ================================================================ */
+
 .collaboration-cursor__caret {
-  border-left: 2px solid;
-  border-right: 2px solid;
+  border-left: 2px solid currentColor;
+  border-right: 2px solid currentColor;
   margin-left: -1px;
   margin-right: -1px;
-  pointer-events: none;
+  /* FIX: was missing — this is the critical line */
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
   position: relative;
   word-break: normal;
 }
+
 .collaboration-cursor__label {
+  border-radius: 2px 2px 2px 0;
   color: #fff;
   font-family: "Space Grotesk", sans-serif;
   font-size: 10px;
@@ -1641,47 +1643,139 @@ button {
   padding: 2px 6px;
   position: absolute;
   top: -1.4em;
-  -webkit-user-select: none;
-  user-select: none;
+  /* FIX: label floats above text — must not block clicks below it */
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
   white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  /* Ensure it renders above the document content */
+  z-index: 10;
 }
 
-/* Task list */
-.ProseMirror ul[data-type="taskList"] {
+/* ================================================================
+   LIST FIXES
+   Tiptap + Collaboration can lose list indentation and marker
+   styles. Set them explicitly so they're independent of browser
+   defaults (which vary between Chrome, Firefox, Safari).
+   ================================================================ */
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.6em;
+  margin-bottom: 0.75em;
+  /* FIX: list-style-position inside keeps bullets inside the padding box */
+  list-style-position: outside;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ul ul {
+  list-style-type: circle;
+}
+
+.ProseMirror ul ul ul {
+  list-style-type: square;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror ol ol {
+  list-style-type: lower-alpha;
+}
+
+.ProseMirror ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.ProseMirror li {
+  margin-bottom: 0.25em;
+  /* FIX: display block so nested lists indent correctly */
+  display: list-item;
+}
+
+/* Nested lists — extra indent per level */
+.ProseMirror li > ul,
+.ProseMirror li > ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  padding-left: 1.4em;
+}
+
+/* ── Task list ── */
+.ProseMirror ul[data-type="taskList"],
+.ProseMirror .task-list-node {
   padding-left: 0;
   list-style: none;
+  margin-bottom: 0.75em;
 }
-.ProseMirror li[data-type="taskItem"] {
+
+.ProseMirror li[data-type="taskItem"],
+.ProseMirror .task-item-node {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  margin-bottom: 4px;
+  /* FIX: must not be list-item or the bullet renders alongside the checkbox */
+  list-style: none;
 }
-.ProseMirror li[data-type="taskItem"] > label {
+
+.ProseMirror li[data-type="taskItem"] > label,
+.ProseMirror .task-item-node > label {
   display: inline-flex;
   align-items: center;
-  margin-top: 2px;
+  margin-top: 3px;
+  flex-shrink: 0;
+  /* FIX: clicking the label area should check the box, not select text */
+  cursor: pointer;
+  user-select: none;
 }
-.ProseMirror li[data-type="taskItem"] > div {
+
+.ProseMirror li[data-type="taskItem"] > div,
+.ProseMirror .task-item-node > div {
   flex: 1;
   min-width: 0;
 }
-.ProseMirror li[data-type="taskItem"] > div > p {
+
+.ProseMirror li[data-type="taskItem"] > div > p,
+.ProseMirror .task-item-node > div > p {
   margin: 0;
 }
-.ProseMirror li[data-type="taskItem"] input[type="checkbox"] {
-  width: auto;
+
+/* Checked task item — strike through the text */
+.ProseMirror li[data-type="taskItem"][data-checked="true"] > div,
+.ProseMirror .task-item-node[data-checked="true"] > div {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.ProseMirror li[data-type="taskItem"] input[type="checkbox"],
+.ProseMirror .task-item-node input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
   min-width: 0;
   padding: 0;
-  border: none;
-  background: transparent;
+  border: 2px solid #3b6978;
+  background: #fff;
   box-shadow: none;
   outline: none;
   margin: 0;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: var(--primary);
+  accent-color: #3b6978;
+  border-radius: 2px;
+}
+
+/* Nested task lists */
+.ProseMirror li[data-type="taskItem"] ul[data-type="taskList"],
+.ProseMirror .task-item-node .task-list-node {
+  margin-top: 4px;
+  padding-left: 1.4em;
 }
 
 /* ================================================================
