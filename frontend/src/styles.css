@@ -1035,10 +1035,11 @@ button {
   }
 
   .external-tasks-handle {
-    position: relative;
+    position: absolute;
+    right: 12px;
     left: auto !important;
-    top: auto;
-    margin-bottom: 8px;
+    top: 12px;
+    margin-bottom: 0;
     display: inline-block;
   }
 }
