@@ -303,6 +303,7 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  width: 100%;
 }
 
 .dashboard-layout {
@@ -469,6 +470,17 @@ button {
   z-index: 50;
 }
 
+.dashboard-top-header h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin: 0;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
   .dashboard-top-header {
     padding: 0 12px;
@@ -497,6 +509,26 @@ button {
   padding: 32px;
 }
 
+.dashboard-content > div:first-child h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(24px, 8vw, 36px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #0f172a;
+  margin: 0 0 12px 0;
+}
+
+.dashboard-content > div:first-child p {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #475569;
+  margin-top: 10px;
+  max-width: 480px;
+  line-height: 1.6;
+}
+
 @media (max-width: 900px) {
   .dashboard-content {
     padding: 20px 16px;
@@ -506,6 +538,16 @@ button {
 @media (max-width: 600px) {
   .dashboard-content {
     padding: 14px 12px;
+  }
+
+  .dashboard-content > div:first-child h2 {
+    font-size: clamp(18px, 6vw, 28px);
+    margin-bottom: 8px;
+  }
+
+  .dashboard-content > div:first-child p {
+    font-size: 12px;
+    max-width: 100%;
   }
 }
 
@@ -1036,26 +1078,8 @@ button {
    ================================================================ */
 
 .external-tasks-handle {
-  position: absolute;
-  top: 12px;
-  left: 0;
-  z-index: 4;
-  padding: 6px 10px;
-  min-width: 86px;
-  background: #eef5f8;
-  color: #21515f;
-  border: 2px solid #0f172a;
-  box-shadow: 3px 3px 0px #0f172a;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  transition: left 0.2s ease;
-}
-
-.external-tasks-handle.is-open {
-  left: 326px;
+  /* Button is now in toolbar - these styles are legacy */
+  display: none;
 }
 
 .external-tasks-panel {
@@ -1097,27 +1121,13 @@ button {
   }
 
   .external-tasks-handle {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 101;
-    padding: 4px 8px;
-    min-width: auto;
-    font-size: 9px;
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: auto;
+    display: none; /* Button is in toolbar now */
   }
 }
 
 @media (max-width: 480px) {
   .external-tasks-handle {
-    right: 6px;
-    padding: 3px 6px;
-    font-size: 8px;
+    display: none; /* Button is in toolbar now */
   }
 }
 

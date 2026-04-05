@@ -629,25 +629,18 @@ export default function EditorPage({ docId, onBack }: Props) {
 
       {/* ── Toolbar ── */}
       {canEdit && editorRef.current && (
-        <Toolbar editor={editorRef.current} onAddTask={handleAddExternalTask} />
+        <Toolbar
+          editor={editorRef.current}
+          onAddTask={handleAddExternalTask}
+          tasksPanelOpen={tasksPanelOpen}
+          onToggleTasksPanel={() => setTasksPanelOpen((v) => !v)}
+        />
       )}
 
       {/* ── Main Layout ── */}
       <div className="editor-main-layout">
         <div className="editor-main-area">
           <div className="editor-content-row">
-            <button
-              type="button"
-              className={`external-tasks-handle ${tasksPanelOpen ? "is-open" : "is-closed"}`}
-              onClick={() => setTasksPanelOpen((v) => !v)}
-              title={tasksPanelOpen ? "Hide task tracker" : "Show task tracker"}
-              aria-label={
-                tasksPanelOpen ? "Hide task tracker" : "Show task tracker"
-              }
-            >
-              {tasksPanelOpen ? "◀ Tasks" : "▶ Tasks"}
-            </button>
-
             <section
               className={`external-tasks-panel ${tasksPanelOpen ? "is-open" : "is-closed"}`}
               aria-label="Task tracker"

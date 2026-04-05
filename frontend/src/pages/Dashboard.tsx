@@ -199,23 +199,9 @@ export default function Dashboard({ onOpenDoc }: Props) {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#F4FAFD",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* ── Sidebar + Main Layout ── */}
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          overflow: "hidden",
-          minHeight: "100vh",
-        }}
-      >
+    <div className="dashboard-root">
+      {/* Sidebar + Main Layout */}
+      <div className="dashboard-layout">
         {pendingLoginRequest &&
           !hiddenRequests.includes(pendingLoginRequest.requestId) && (
             <div
@@ -274,76 +260,23 @@ export default function Dashboard({ onOpenDoc }: Props) {
           )}
 
         {/* Sidebar */}
-        <aside
-          style={{
-            width: 240,
-            flexShrink: 0,
-            background: "#F4FAFD",
-            borderRight: "2px solid #0F172A",
-            display: "flex",
-            flexDirection: "column",
-            height: "100vh",
-            position: "sticky",
-            top: 0,
-          }}
-        >
+        <aside className="dashboard-sidebar">
           {/* Brand */}
-          <div style={{ padding: "24px 20px 20px" }}>
-            <div
-              style={{
-                fontFamily: "Space Grotesk, sans-serif",
-                fontSize: 18,
-                fontWeight: 700,
-                color: "#0F172A",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              CollabEdit
-            </div>
-            <div
-              style={{
-                fontFamily: "Space Grotesk, sans-serif",
-                fontSize: 9,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-                color: "#94A3B8",
-                marginTop: 2,
-              }}
-            >
+          <div className="dashboard-sidebar-brand">
+            <div className="dashboard-sidebar-brand-name">CollabEdit</div>
+            <div className="dashboard-sidebar-brand-sub">
               {user?.username} · Lead Editor
             </div>
           </div>
 
-          {/* Nav */}
-          <nav style={{ flex: 1, padding: "0 12px" }}></nav>
-
           {/* Bottom */}
-          <div style={{ padding: "16px 12px", borderTop: "2px solid #0F172A" }}>
+          <div className="dashboard-sidebar-bottom">
             {/* CollabID */}
-            <div
-              style={{
-                background: "#EEF5F8",
-                border: "2px solid #0F172A",
-                padding: "10px 12px",
-                marginBottom: 12,
-              }}
-            >
+            <div className="dashboard-collab-id-box">
               <div className="section-heading" style={{ marginBottom: 4 }}>
                 Your CollabID
               </div>
-              <div
-                style={{
-                  fontFamily: "Space Grotesk, sans-serif",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "#21515F",
-                  wordBreak: "break-all",
-                  marginBottom: 8,
-                }}
-              >
-                {user?.collabId}
-              </div>
+              <div className="dashboard-collab-id-value">{user?.collabId}</div>
               <button
                 className="btn-secondary btn-sm"
                 onClick={copyCollabId}
@@ -402,34 +335,10 @@ export default function Dashboard({ onOpenDoc }: Props) {
         </aside>
 
         {/* Main content */}
-        <main style={{ flex: 1, overflow: "auto", paddingBottom: 40 }}>
+        <main className="dashboard-main">
           {/* Top header */}
-          <div
-            style={{
-              background: "#F4FAFD",
-              borderBottom: "2px solid #0F172A",
-              padding: "0 32px",
-              height: 64,
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              position: "sticky",
-              top: 0,
-              zIndex: 50,
-            }}
-          >
-            <h1
-              style={{
-                fontFamily: "Space Grotesk, sans-serif",
-                fontSize: 22,
-                fontWeight: 700,
-                color: "#0F172A",
-                textTransform: "uppercase",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              The Archive
-            </h1>
+          <div className="dashboard-top-header">
+            <h1 style={{ margin: 0 }}>The Archive</h1>
             <div style={{ flex: 1 }} />
             <div style={{ position: "relative" }}>
               <button
@@ -546,7 +455,7 @@ export default function Dashboard({ onOpenDoc }: Props) {
             </div>
           </div>
 
-          <div style={{ padding: "32px" }}>
+          <div className="dashboard-content">
             {/* Page title */}
             <div style={{ marginBottom: 32 }}>
               <h2

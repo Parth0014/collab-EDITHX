@@ -4,6 +4,8 @@ import { Editor } from "@tiptap/react";
 interface Props {
   editor: Editor;
   onAddTask?: () => void;
+  tasksPanelOpen?: boolean;
+  onToggleTasksPanel?: () => void;
 }
 
 const Sep = () => (
@@ -69,7 +71,7 @@ function ToolBtn({
   );
 }
 
-export default function Toolbar({ editor, onAddTask }: Props) {
+export default function Toolbar({ editor, onAddTask, tasksPanelOpen, onToggleTasksPanel }: Props) {
   if (!editor) return null;
 
   const [, forceToolbarRefresh] = React.useReducer((n) => n + 1, 0);
@@ -445,6 +447,47 @@ export default function Toolbar({ editor, onAddTask }: Props) {
           }}
         />
       </div>
+
+      <Sep />
+
+      {/* Tasks Panel Toggle */}
+      <button
+        type="button"
+        title={tasksPanelOpen ? "Hide task tracker" : "Show task tracker"}
+        aria-label={tasksPanelOpen ? "Hide task tracker" : "Show task tracker"}
+        onClick={onToggleTasksPanel}
+        style={{
+          padding: "4px 8px",
+          fontFamily: "Space Grotesk, sans-serif",
+          fontSize: 11,
+          fontWeight: 700,
+          background: tasksPanelOpen ? "#21515F" : "transparent",
+          color: tasksPanelOpen ? "#fff" : "#475569",
+          border: tasksPanelOpen ? "2px solid #21515F" : "2px solid transparent",
+          minWidth: 70,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          transition: "all 0.1s",
+          boxShadow: tasksPanelOpen ? "2px 2px 0px #0F172A" : "none",
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+        }}
+        onMouseEnter={(e) => {
+          if (!tasksPanelOpen) {
+            (e.currentTarget as HTMLButtonElement).style.background = "#EEF5F8";
+            (e.currentTarget as HTMLButtonElement).style.color = "#21515F";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!tasksPanelOpen) {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "transparent";
+            (e.currentTarget as HTMLButtonElement).style.color = "#475569";
+          }
+        }}
+      >
+        {tasksPanelOpen ? "◀ Tasks" : "▶ Tasks"}
+      </button>
     </div>
-  );
-}
