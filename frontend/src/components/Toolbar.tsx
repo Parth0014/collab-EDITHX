@@ -71,7 +71,12 @@ function ToolBtn({
   );
 }
 
-export default function Toolbar({ editor, onAddTask, tasksPanelOpen, onToggleTasksPanel }: Props) {
+export default function Toolbar({
+  editor,
+  onAddTask,
+  tasksPanelOpen,
+  onToggleTasksPanel,
+}: Props) {
   if (!editor) return null;
 
   const [, forceToolbarRefresh] = React.useReducer((n) => n + 1, 0);
@@ -463,7 +468,9 @@ export default function Toolbar({ editor, onAddTask, tasksPanelOpen, onToggleTas
           fontWeight: 700,
           background: tasksPanelOpen ? "#21515F" : "transparent",
           color: tasksPanelOpen ? "#fff" : "#475569",
-          border: tasksPanelOpen ? "2px solid #21515F" : "2px solid transparent",
+          border: tasksPanelOpen
+            ? "2px solid #21515F"
+            : "2px solid transparent",
           minWidth: 70,
           display: "flex",
           alignItems: "center",
@@ -491,3 +498,5 @@ export default function Toolbar({ editor, onAddTask, tasksPanelOpen, onToggleTas
         {tasksPanelOpen ? "◀ Tasks" : "▶ Tasks"}
       </button>
     </div>
+  );
+}
