@@ -217,15 +217,34 @@ export default function EditorPage({ docId, onBack }: Props) {
       );
     });
 
+    // When the server broadcasts a confirmed task, replace any temp optimistic
+    // entry with the same text (added by this client) with the real one.
+    // For other clients there are no temp entries so it just appends normally.
     socket.on("task-added", (task: ExternalTask) => {
-      setExternalTasks((prev) => [...prev, task]);
+      setExternalTasks((prev) => {
+        const tempIndex = prev.findIndex(
+          (t) => t.id.startsWith("temp-") && t.text === task.text,
+        );
+        if (tempIndex !== -1) {
+          // Replace the temp optimistic entry with the server-confirmed one.
+          const next = [...prev];
+          next[tempIndex] = task;
+          return next;
+        }
+        // Another collaborator added this task — just append it.
+        return [...prev, task];
+      });
     });
 
-    socket.on("task-toggled", (taskId: string) => {
-      setExternalTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t)),
-      );
-    });
+    // Server broadcasts { taskId, done } so destructure correctly.
+    socket.on(
+      "task-toggled",
+      ({ taskId, done }: { taskId: string; done: boolean }) => {
+        setExternalTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, done } : t)),
+        );
+      },
+    );
 
     // 4. Cleanup: disconnect socket and destroy ydoc.
     return () => {
@@ -275,10 +294,28 @@ export default function EditorPage({ docId, onBack }: Props) {
     const trimmed = taskText.trim();
     if (!trimmed) return;
     setTasksPanelOpen(true);
+
+    // Optimistic local add so the task appears immediately for the creator.
+    // The server will broadcast the real task (with a server-generated id) to
+    // all OTHER clients via "task-added". We replace our temp entry when that
+    // comes back (see the dedup logic in the socket listener above).
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setExternalTasks((prev) => [
+      ...prev,
+      { id: tempId, text: trimmed, done: false },
+    ]);
+
     socketRef.current?.emit("task-added", { docId, text: trimmed });
   };
 
   const toggleExternalTask = (taskId: string) => {
+    // Skip optimistic update for temp tasks that haven't been confirmed yet.
+    if (taskId.startsWith("temp-")) return;
+
+    // Optimistic toggle so the checkbox feels instant for the user who clicked.
+    setExternalTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t)),
+    );
     socketRef.current?.emit("task-toggled", { docId, taskId });
   };
 
