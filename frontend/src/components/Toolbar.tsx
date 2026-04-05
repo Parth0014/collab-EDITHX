@@ -223,6 +223,8 @@ export default function Toolbar({
             cursor: "pointer",
           }}
         >
+          <option value="13px">10pt</option>
+          <option value="16px">12pt</option>
           <option value="19px">14pt</option>
           <option value="24px">18pt</option>
           <option value="32px">24pt</option>
