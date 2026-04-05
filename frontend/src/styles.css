@@ -1035,12 +1035,28 @@ button {
   }
 
   .external-tasks-handle {
-    position: absolute;
-    right: 12px;
-    left: auto !important;
-    top: 12px;
-    margin-bottom: 0;
-    display: inline-block;
+    position: fixed;
+    right: 6px;
+    top: 104px;
+    z-index: 101;
+    padding: 4px 8px;
+    min-width: auto;
+    font-size: 9px;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+  }
+}
+
+@media (max-width: 480px) {
+  .external-tasks-handle {
+    right: 4px;
+    top: 100px;
+    padding: 3px 6px;
+    font-size: 8px;
+    height: 24px;
   }
 }
 
