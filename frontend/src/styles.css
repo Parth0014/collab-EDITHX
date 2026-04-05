@@ -1576,10 +1576,10 @@ button {
   line-height: 1.8;
   color: var(--text);
   caret-color: #e03131;
-  /* Custom red dot cursor for visibility inside the editor */
+  /* Creative branded cursor - custom pointer with accent ring */
   cursor:
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="red"/></svg>')
-      12 12,
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><style>.ring{fill:none;stroke:%233b6978;stroke-width:2;}.dot{fill:%233b6978;}.glow{fill:%2300bcd4;filter:drop-shadow(0 0 3px %2300bcd4);}</style></defs><circle class="ring" cx="16" cy="16" r="8"/><circle class="glow" cx="16" cy="16" r="4"/><circle class="dot" cx="16" cy="16" r="2.5"/><path d="M16 0 L18 8 L26 10 L20 16 L22 24 L16 20 L10 24 L12 16 L6 10 L14 8 Z" fill="%2300bcd4" opacity="0.3"/></svg>')
+      16 16,
     text;
 }
 
@@ -1592,8 +1592,8 @@ button {
 
 .ProseMirror * {
   cursor:
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="red"/></svg>')
-      12 12,
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><style>.ring{fill:none;stroke:%233b6978;stroke-width:2;}.dot{fill:%233b6978;}.glow{fill:%2300bcd4;filter:drop-shadow(0 0 3px %2300bcd4);}</style></defs><circle class="ring" cx="16" cy="16" r="8"/><circle class="glow" cx="16" cy="16" r="4"/><circle class="dot" cx="16" cy="16" r="2.5"/><path d="M16 0 L18 8 L26 10 L20 16 L22 24 L16 20 L10 24 L12 16 L6 10 L14 8 Z" fill="%2300bcd4" opacity="0.3"/></svg>')
+      16 16,
     text;
 }
 
