@@ -21,14 +21,12 @@ const roomUsers = new Map<
 >();
 
 const CURSOR_COLORS = [
-  "#e03131",
-  "#2f9e44",
-  "#1971c2",
-  "#7048e8",
-  "#d6336c",
-  "#f08c00",
-  "#0c8599",
-  "#5c7cfa",
+  "#3b6978", // tone-1
+  "#21515f", // tone-2
+  "#e03131", // tone-3
+  "#f08c00", // tone-4
+  "#7048e8", // tone-5
+  "#0c8599", // tone-6
 ];
 
 function getYDoc(docId: string): Y.Doc {
