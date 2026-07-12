@@ -155,30 +155,6 @@ export default function Toolbar({
     onAddTask?.();
   };
 
-  const handleExportPDF = async () => {
-    try {
-      const htmlContent = getEditorHTML(
-        document.querySelector(".ProseMirror") as HTMLElement,
-      );
-      await exportToPDF(htmlContent, documentTitle);
-    } catch (error) {
-      console.error("Failed to export PDF:", error);
-      alert("Failed to export PDF. Please try again.");
-    }
-  };
-
-  const handleExportDOCX = async () => {
-    try {
-      const htmlContent = getEditorHTML(
-        document.querySelector(".ProseMirror") as HTMLElement,
-      );
-      await exportToDOCX(htmlContent, documentTitle);
-    } catch (error) {
-      console.error("Failed to export DOCX:", error);
-      alert("Failed to export DOCX. Please try again.");
-    }
-  };
-
   const resizeSelectedImage = (delta: number) => {
     const { selection } = editor.state;
     const selectedNode = (selection as any).node;
@@ -527,85 +503,6 @@ export default function Toolbar({
         }}
       >
         {tasksPanelOpen ? "◀ Tasks" : "▶ Tasks"}
-      </button>
-
-      <Sep />
-
-      {/* Export Buttons */}
-      <button
-        type="button"
-        title="Export as PDF"
-        aria-label="Export as PDF"
-        onClick={handleExportPDF}
-        style={{
-          padding: "4px 8px",
-          fontFamily: "Space Grotesk, sans-serif",
-          fontSize: 11,
-          fontWeight: 700,
-          background: "transparent",
-          color: "#475569",
-          border: "2px solid transparent",
-          minWidth: 60,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          transition: "all 0.1s",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = "#EEF5F8";
-          (e.currentTarget as HTMLButtonElement).style.color = "#21515F";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#21515F";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background =
-            "transparent";
-          (e.currentTarget as HTMLButtonElement).style.color = "#475569";
-          (e.currentTarget as HTMLButtonElement).style.borderColor =
-            "transparent";
-        }}
-      >
-        📄 PDF
-      </button>
-
-      <button
-        type="button"
-        title="Export as Word (DOCX)"
-        aria-label="Export as Word (DOCX)"
-        onClick={handleExportDOCX}
-        style={{
-          padding: "4px 8px",
-          fontFamily: "Space Grotesk, sans-serif",
-          fontSize: 11,
-          fontWeight: 700,
-          background: "transparent",
-          color: "#475569",
-          border: "2px solid transparent",
-          minWidth: 70,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          transition: "all 0.1s",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = "#EEF5F8";
-          (e.currentTarget as HTMLButtonElement).style.color = "#21515F";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#21515F";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background =
-            "transparent";
-          (e.currentTarget as HTMLButtonElement).style.color = "#475569";
-          (e.currentTarget as HTMLButtonElement).style.borderColor =
-            "transparent";
-        }}
-      >
-        📝 DOCX
       </button>
     </div>
   );
