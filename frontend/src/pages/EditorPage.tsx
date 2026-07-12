@@ -8,6 +8,7 @@ import { Document, RoomUser, AccessLevel } from "../types";
 import CollabEditor from "../components/CollabEditor.tsx";
 import MembersPanel from "../components/MembersPanel";
 import MediaPanel from "../components/MediaPanel";
+import PagedDocumentView from "../components/PagedDocumentView";
 import Toolbar from "../components/Toolbar";
 import { Editor } from "@tiptap/react";
 import "./EditorPage.css";
@@ -71,6 +72,8 @@ export default function EditorPage({ docId, onBack }: Props) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [externalTasks, setExternalTasks] = useState<ExternalTask[]>([]);
   const [tasksPanelOpen, setTasksPanelOpen] = useState(false);
+  const [showPagedView, setShowPagedView] = useState(false);
+  const [pagedHtmlSnapshot, setPagedHtmlSnapshot] = useState("");
   const socketRef = useRef<Socket | null>(null);
 
   // FIX: Use state for ydoc so React re-renders CollabEditor with the new
@@ -608,6 +611,24 @@ export default function EditorPage({ docId, onBack }: Props) {
         </div>
 
         <button
+          className={`btn-secondary btn-sm ${showPagedView ? "editor-top-btn-active" : ""}`}
+          onClick={() => {
+            // Capture a stable HTML snapshot before the editor unmounts.
+            // Paged view then renders from this snapshot instead of live editorRef.
+            if (!showPagedView) {
+              const html = editorRef.current?.getHTML() || "";
+              setPagedHtmlSnapshot(html);
+            }
+            setShowPagedView((v) => !v);
+          }}
+          title={showPagedView ? "Show continuous view" : "Show A4 paged view"}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+            {showPagedView ? "unfold_more" : "page_styles"}
+          </span>
+          {showPagedView ? "Continuous" : "Pages"}
+        </button>
+        <button
           className={`btn-secondary btn-sm ${showMedia ? "editor-top-btn-active" : ""}`}
           onClick={() => setShowMedia((v) => !v)}
         >
@@ -685,6 +706,7 @@ export default function EditorPage({ docId, onBack }: Props) {
           onAddTask={handleAddExternalTask}
           tasksPanelOpen={tasksPanelOpen}
           onToggleTasksPanel={() => setTasksPanelOpen((v) => !v)}
+          documentTitle={title || "Untitled"}
         />
       )}
 
@@ -774,7 +796,7 @@ export default function EditorPage({ docId, onBack }: Props) {
                     when a new ydoc is created for a new docId. This ensures
                     the Tiptap Collaboration extension always binds to the
                     current ydoc instance, not a stale one. */}
-                {ydocReady && (
+                {ydocReady && !showPagedView && (
                   <CollabEditor
                     key={ydoc.guid}
                     ydoc={ydoc}
@@ -785,6 +807,15 @@ export default function EditorPage({ docId, onBack }: Props) {
                     username={user?.username || "Anonymous"}
                     editorRef={editorRef}
                     mediaAssets={doc?.mediaAssets || []}
+                  />
+                )}
+
+                {ydocReady && showPagedView && (
+                  <PagedDocumentView
+                    key={`paged-${showPagedView}`}
+                    htmlContent={pagedHtmlSnapshot}
+                    title={title || "Untitled"}
+                    isActive={showPagedView}
                   />
                 )}
 

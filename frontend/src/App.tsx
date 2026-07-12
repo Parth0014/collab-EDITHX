@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { PopupProvider } from "./context/PopupContext";
-import { setAuthHeader } from "./utils/api";
+import { setAuthHeader, API_BASE } from "./utils/api";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import EditorPage from "./pages/EditorPage";
@@ -23,7 +23,18 @@ function AppInner() {
       return null;
     }
   });
+  useEffect(() => {
+    const pingBackend = () => {
+      fetch(`${API_BASE}/health`).catch(() => {
+        // ignore errors
+      });
+    };
 
+    pingBackend(); // ping once on load
+    const interval = setInterval(pingBackend, 10 * 60 * 1000); // every 10 min
+
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     setAuthHeader(token);
   }, [token]);

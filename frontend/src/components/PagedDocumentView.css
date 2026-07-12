@@ -1,0 +1,372 @@
+/* PagedDocumentView.css - A4 Page rendering styles */
+
+.paged-document-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #f4fafd;
+  position: relative;
+}
+
+/* Page Navigation */
+.page-navigation {
+  background: #eef5f8;
+  border-bottom: 2px solid #0f172a;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #21515f;
+}
+
+.nav-button {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  background: #fff;
+  border: 2px solid #0f172a;
+  color: #0f172a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nav-button:hover:not(:disabled) {
+  background: #0f172a;
+  color: #fff;
+}
+
+.nav-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-counter {
+  font-weight: 700;
+  color: #0f172a;
+  min-width: 150px;
+}
+
+.page-info {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Pages Container */
+.pages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #f4fafd;
+  background-image: radial-gradient(#3b6978 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-attachment: local;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .pages-container {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pages-container {
+    padding: 8px;
+    background-image: none;
+  }
+}
+
+/* A4 Page */
+.a4-page {
+  width: 210mm;
+  height: 297mm;
+  background: #fff;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.15),
+    6px 6px 0px #0f172a;
+  padding: 20mm;
+  box-sizing: border-box;
+  border: 2px solid #0f172a;
+  overflow: hidden;
+  page-break-after: always;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  font-size: 12px;
+
+  /* Prevent content overflow */
+  max-height: 297mm;
+  display: flex;
+  flex-direction: column;
+}
+
+.a4-page.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* A4 Page Content Styles */
+.a4-page h1,
+.a4-page h2,
+.a4-page h3,
+.a4-page h4,
+.a4-page h5,
+.a4-page h6 {
+  margin-top: 12px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0f172a;
+}
+
+.a4-page h1 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.a4-page h2 {
+  font-size: 20px;
+}
+
+.a4-page h3 {
+  font-size: 16px;
+}
+
+.a4-page h4,
+.a4-page h5,
+.a4-page h6 {
+  font-size: 14px;
+}
+
+.a4-page p {
+  margin: 0 0 8px 0;
+  text-align: justify;
+}
+
+.a4-page ul,
+.a4-page ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.a4-page li {
+  margin-bottom: 4px;
+}
+
+.a4-page blockquote {
+  border-left: 3px solid #0f172a;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #475569;
+  font-style: italic;
+}
+
+.a4-page code {
+  background: #f1f5f9;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+}
+
+.a4-page pre {
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  margin: 8px 0;
+}
+
+.a4-page strong,
+.a4-page b {
+  font-weight: 700;
+}
+
+.a4-page em,
+.a4-page i {
+  font-style: italic;
+}
+
+.a4-page img {
+  max-width: 100%;
+  height: auto;
+  margin: 8px 0;
+  border: 1px solid #e2e8f0;
+}
+
+.a4-page a {
+  color: #0f6db0;
+  text-decoration: underline;
+}
+
+/* Page Thumbnails */
+.pages-thumbnails {
+  background: #eef5f8;
+  border-top: 2px solid #0f172a;
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .pages-thumbnails {
+    padding: 8px;
+    gap: 6px;
+  }
+}
+
+.page-thumbnail {
+  width: 60px;
+  height: 80px;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-thumbnail:hover {
+  border-color: #0f172a;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.1);
+}
+
+.page-thumbnail.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+}
+
+.thumbnail-number {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #21515f;
+}
+
+.page-thumbnail.active .thumbnail-number {
+  color: #fff;
+}
+
+/* Print Styles */
+@media print {
+  .paged-document-view {
+    background: #fff;
+  }
+
+  .page-navigation,
+  .pages-thumbnails {
+    display: none;
+  }
+
+  .pages-container {
+    background: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .a4-page {
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 20mm;
+    box-shadow: none;
+    border: none;
+    page-break-after: always;
+  }
+
+  .a4-page:last-child {
+    page-break-after: avoid;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+  .a4-page {
+    width: 85vw;
+    max-width: 210mm;
+    height: auto;
+    min-height: 297mm;
+  }
+}
+
+@media (max-width: 768px) {
+  .a4-page {
+    width: 90vw;
+    height: auto;
+    min-height: auto;
+    padding: 16mm;
+  }
+
+  .a4-page h1 {
+    font-size: 18px;
+  }
+
+  .a4-page h2 {
+    font-size: 16px;
+  }
+
+  .a4-page h3 {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-navigation {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .page-counter {
+    min-width: auto;
+    width: 100%;
+    text-align: center;
+  }
+
+  .a4-page {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .a4-page h1 {
+    font-size: 16px;
+  }
+
+  .a4-page h2 {
+    font-size: 14px;
+  }
+
+  .a4-page p {
+    font-size: 11px;
+  }
+}
