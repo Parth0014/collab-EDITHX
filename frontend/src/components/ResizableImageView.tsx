@@ -2,16 +2,9 @@ import React, { useRef, useState } from "react";
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 
 const MIN_WIDTH = 100;
-// Fallback only, used if we can't measure the real container (shouldn't
-// normally happen). The actual max is computed live from the DOM below,
-// so "full size" always means the true edge of the content column.
 const MAX_WIDTH_FALLBACK = 900;
 const DEFAULT_WIDTH = 250;
 
-// How wide the image is allowed to grow: the content width of the
-// nearest parent element, i.e. the actual edge of the page/column —
-// not an arbitrary constant. This is what makes "resize to full width"
-// possible and keeps it correct across different screen sizes.
 function getMaxAvailableWidth(el: HTMLElement): number {
   const parent = el.parentElement;
   if (!parent) return MAX_WIDTH_FALLBACK;
