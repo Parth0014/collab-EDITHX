@@ -1692,6 +1692,11 @@ button {
   outline: 3px solid var(--primary);
   outline-offset: 2px;
 }
+.image-container.is-resizing {
+  /* Hints the browser to promote this to its own compositor layer only
+     while actively dragging, so the transform preview stays cheap. */
+  will-change: transform;
+}
 
 /* Forgiving invisible strip running the full height of the right edge */
 .image-resize-edge {
@@ -1728,7 +1733,7 @@ button {
   color: var(--text-faint);
   content: attr(data-placeholder);
   float: left;
-}
+} 
 
 .collaboration-cursor__caret {
   border-left: 2px solid currentColor;
