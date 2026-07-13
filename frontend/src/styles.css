@@ -1677,19 +1677,24 @@ button {
   position: relative;
   display: inline-block;
   max-width: 100%;
-  overflow: hidden;
+  /* NOTE: was `overflow: hidden`, which clipped the resize handle's hit-area
+     since it's positioned partially outside the container's box. */
+  overflow: visible;
 }
 .image-container img {
   width: 100%;
   height: auto;
   display: block;
   max-width: 100%;
+  border-radius: 2px;
 }
 .image-container.selected {
   outline: 3px solid var(--primary);
   outline-offset: 2px;
 }
-.image-resize-handle {
+
+/* Forgiving invisible strip running the full height of the right edge */
+.image-resize-edge {
   position: absolute;
   right: -8px;
   top: 0;
@@ -1697,23 +1702,33 @@ button {
   height: 100%;
   cursor: ew-resize;
   background: transparent;
+  touch-action: none;
+}
+
+/* Visible handle — the actual affordance the user sees and grabs */
+.image-resize-handle {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 5;
+}
+.image-resize-handle:hover {
+  transform: scale(1.15);
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
   color: var(--text-faint);
   content: attr(data-placeholder);
   float: left;
-  height: 0;
-  pointer-events: none;
-  font-style: italic;
-  font-family: "Space Grotesk", sans-serif;
 }
-
-/* ================================================================
-   COLLAB CURSOR FIX
-   The caret and label must NEVER intercept pointer events, otherwise
-   users cannot click or drag-select through another user's cursor.
-   ================================================================ */
 
 .collaboration-cursor__caret {
   border-left: 2px solid currentColor;
