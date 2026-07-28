@@ -4,6 +4,7 @@ import {
   EditorContent,
   Editor,
   ReactNodeViewRenderer,
+  BubbleMenu,
 } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -29,14 +30,19 @@ import * as Y from "yjs";
 import { Socket } from "socket.io-client";
 import { MediaAsset } from "../types";
 import ResizableImageView from "./ResizableImageView";
+import EditorBubbleMenu from "./EditorBubbleMenu";
 
-// ── FontSize extension ──────────────────────────────────────────────────────
 const FontSize = Extension.create({
   name: "fontSize",
+
+  addOptions() {
+    return { types: ["textStyle"] };
+  },
+
   addGlobalAttributes() {
     return [
       {
-        types: ["textStyle"],
+        types: this.options.types,
         attributes: {
           fontSize: {
             default: null,
@@ -49,6 +55,25 @@ const FontSize = Extension.create({
         },
       },
     ];
+  },
+
+  addCommands() {
+    return {
+      setFontSize:
+        (fontSize: string) =>
+        ({ chain }: any) => {
+          // Always merge into existing textStyle attrs — never replace.
+          return chain().setMark("textStyle", { fontSize }).run();
+        },
+      unsetFontSize:
+        () =>
+        ({ chain }: any) => {
+          return chain()
+            .setMark("textStyle", { fontSize: null })
+            .removeEmptyTextStyle()
+            .run();
+        },
+    } as any;
   },
 });
 
@@ -90,15 +115,12 @@ function toAbsoluteUrl(rawHref: string): string {
 }
 
 // ── Cursor renderer ─────────────────────────────────────────────────────────
-// The CollaborationCursor `render` option takes a single `user` Record and
-// must return one HTMLElement (the caret). The name label is a child of it.
-// Both elements get pointer-events:none so they NEVER block text selection
-// or clicks — this is the fix for the "can't select through cursors" UX bug.
+// Unchanged from the working version — pointer-events:none on both the caret
+// and label is the fix for "can't select through cursors."
 function renderCursor(user: Record<string, any>): HTMLElement {
   const color: string = user.color ?? "#3b6978";
   const name: string = user.name ?? "?";
 
-  // Name label — floats above the caret line
   const label = document.createElement("span");
   label.classList.add("collaboration-cursor__label");
   label.textContent = name;
@@ -116,14 +138,12 @@ function renderCursor(user: Record<string, any>): HTMLElement {
     "text-transform: uppercase",
     "letter-spacing: 0.05em",
     "border-radius: 2px 2px 2px 0",
-    // KEY: label must never intercept pointer events
     "pointer-events: none",
     "user-select: none",
     "-webkit-user-select: none",
     "z-index: 10",
   ].join(";");
 
-  // Caret line
   const caret = document.createElement("span");
   caret.classList.add("collaboration-cursor__caret");
   caret.style.cssText = [
@@ -132,7 +152,6 @@ function renderCursor(user: Record<string, any>): HTMLElement {
     "margin-left: -1px",
     "margin-right: -1px",
     "word-break: normal",
-    // KEY: caret must never intercept pointer events
     "pointer-events: none",
     "user-select: none",
     "-webkit-user-select: none",
@@ -168,7 +187,7 @@ export default function CollabEditor({
   const awarenessRef = useRef<Awareness>(new Awareness(ydoc));
   const awareness = awarenessRef.current;
 
-  // ── Awareness sync ────────────────────────────────────────────────────────
+  // ── Awareness sync (unchanged — this was never the buggy part) ───────────
   useEffect(() => {
     if (!socket) return;
 
@@ -225,11 +244,8 @@ export default function CollabEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // REQUIRED when using Collaboration — Yjs handles undo/redo.
         history: false,
 
-        // FIX: keepMarks/keepAttributes preserve formatting (bold, color, etc.)
-        // when Enter is pressed inside a list item to continue the list.
         bulletList: {
           keepMarks: true,
           keepAttributes: true,
@@ -252,16 +268,11 @@ export default function CollabEditor({
           HTMLAttributes: { class: "paragraph-node" },
         },
 
-        // FIX: Disable hard-break (Shift+Enter → <br>) so it doesn't compete
-        // with the list item's own Enter key handler and break list continuation.
         hardBreak: false,
       }),
 
       Collaboration.configure({ document: ydoc }),
 
-      // FIX: Pass our custom render function which sets pointer-events:none
-      // on both the caret and the label, so other users' cursors never
-      // intercept mouse clicks or drag-selection.
       CollaborationCursor.configure({
         provider: { awareness } as any,
         user: { name: username, color: myColor },
@@ -274,7 +285,6 @@ export default function CollabEditor({
 
       Underline,
 
-      // FIX: Include listItem so text alignment works inside list items too.
       TextAlign.configure({
         types: ["heading", "paragraph", "blockquote", "listItem"],
       }),
@@ -301,8 +311,11 @@ export default function CollabEditor({
 
       ResizableImage.configure({ inline: false, allowBase64: true }),
 
-      Color,
+      // Order matters for readability only, not for merge safety: TextStyle
+      // must exist before Color/FontSize since both target it. Color ships
+      // its own safe setColor command; FontSize's commands above do the same.
       TextStyle,
+      Color,
       FontSize,
     ],
 
@@ -359,6 +372,7 @@ export default function CollabEditor({
 
   return (
     <div className="collab-editor-container">
+      {editor && <EditorBubbleMenu editor={editor} />}
       <EditorContent editor={editor} />
     </div>
   );

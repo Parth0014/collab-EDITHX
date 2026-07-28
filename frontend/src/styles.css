@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 
 *,
@@ -62,6 +63,392 @@ body {
   color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ================================================================
+   TIPTAP EDITOR — integrated stylesheet
+   Same visual tokens as the rest of the app (imports the :root vars
+   from the global stylesheet — this file assumes that's already
+   loaded, it does not redeclare --primary/--outline/etc.)
+   ================================================================ */
+
+.ProseMirror {
+  outline: none;
+  min-height: 500px;
+  font-family: "Inter", sans-serif;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text);
+  caret-color: #e03131;
+  cursor:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="%23e03131" stroke="%230f172a" stroke-width="1.5"/></svg>')
+      12 12,
+    text;
+}
+
+@media (max-width: 600px) {
+  .ProseMirror {
+    font-size: 14px;
+    min-height: 300px;
+  }
+}
+
+.ProseMirror * {
+  cursor:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="%23e03131" stroke="%230f172a" stroke-width="1.5"/></svg>')
+      12 12,
+    text;
+}
+
+.ProseMirror ::selection {
+  background: rgba(14, 165, 233, 0.35);
+}
+
+/* ── Block typography ────────────────────────────────────────── */
+
+.ProseMirror p {
+  margin-bottom: 0.75em;
+}
+.ProseMirror h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.5em, 5vw, 2em);
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+  line-height: 1.2;
+}
+.ProseMirror h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.25em, 4vw, 1.5em);
+  font-weight: 600;
+  margin: 0.9em 0 0.4em;
+}
+.ProseMirror h3 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.1em, 3.5vw, 1.25em);
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+}
+.ProseMirror blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.ProseMirror code {
+  background: var(--surface-container);
+  padding: 0.15em 0.4em;
+  font-family: "Fira Code", monospace;
+  font-size: 0.875em;
+  border: 1px solid var(--border-light);
+}
+.ProseMirror pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+  border: 2px solid var(--outline);
+  -webkit-overflow-scrolling: touch;
+}
+.ProseMirror pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  border: none;
+}
+.ProseMirror a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.ProseMirror hr {
+  border: none;
+  border-top: 2px solid var(--outline);
+  margin: 1.5em 0;
+}
+
+/* ── INTEGRATION FIX ─────────────────────────────────────────────
+   H1–H3 all set font-family + font-weight directly. Since headings
+   don't carry a `textStyle` mark, they're immune to the color/
+   font-size interplay below — but they SHOULD still be able to
+   take an inline Color mark (highlighting a word within a heading).
+   Explicitly allow textStyle's color to inherit through instead of
+   being overridden by any heading-level color rule (there wasn't
+   one before, this just documents and locks the invariant so a
+   future heading color rule doesn't accidentally break inline
+   color-within-heading again). */
+.ProseMirror h1 span[style*="color"],
+.ProseMirror h2 span[style*="color"],
+.ProseMirror h3 span[style*="color"] {
+  color: inherit;
+}
+
+/* ── Images ───────────────────────────────────────────────────── */
+
+.ProseMirror img {
+  max-width: 100%;
+  cursor: pointer;
+  display: block;
+  height: auto;
+}
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.image-container {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow: visible;
+}
+.image-container img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 100%;
+  border-radius: 2px;
+}
+.image-container.selected {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.image-container.is-resizing {
+  will-change: transform;
+}
+
+.image-resize-edge {
+  position: absolute;
+  right: -8px;
+  top: 0;
+  width: 16px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  touch-action: none;
+}
+
+.image-resize-handle {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 5;
+}
+.image-resize-handle:hover {
+  transform: scale(1.15);
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--text-faint);
+  content: attr(data-placeholder);
+  float: left;
+}
+
+/* ── Collaboration cursors ───────────────────────────────────── */
+
+.collaboration-cursor__caret {
+  border-left: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  position: relative;
+  word-break: normal;
+  cursor: default;
+}
+
+.collaboration-cursor__label {
+  border-radius: 2px 2px 2px 0;
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  left: -1px;
+  line-height: normal;
+  padding: 2px 6px;
+  position: absolute;
+  top: -1.4em;
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 10;
+  cursor: default;
+}
+
+/* ================================================================
+   LIST INTEGRATION
+   Consolidated rules for bullet / ordered / task lists so that any
+   combination (a task item containing a nested bullet list, an
+   ordered list inside a blockquote, etc.) resolves predictably
+   instead of each list type only being tested in isolation.
+   ================================================================ */
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.6em;
+  margin-bottom: 0.75em;
+  list-style-position: outside;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+.ProseMirror ul ul {
+  list-style-type: circle;
+}
+.ProseMirror ul ul ul {
+  list-style-type: square;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+.ProseMirror ol ol {
+  list-style-type: lower-alpha;
+}
+.ProseMirror ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.ProseMirror li {
+  margin-bottom: 0.25em;
+  display: list-item;
+}
+
+.ProseMirror li > ul,
+.ProseMirror li > ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  padding-left: 1.4em;
+}
+
+/* ── Task list ── */
+
+.ProseMirror ul[data-type="taskList"],
+.ProseMirror .task-list-node {
+  padding-left: 0;
+  list-style: none;
+  margin-bottom: 0.75em;
+}
+
+.ProseMirror li[data-type="taskItem"],
+.ProseMirror .task-item-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+  list-style: none;
+}
+
+.ProseMirror li[data-type="taskItem"] > label,
+.ProseMirror .task-item-node > label {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ProseMirror li[data-type="taskItem"] > div,
+.ProseMirror .task-item-node > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.ProseMirror li[data-type="taskItem"] > div > p,
+.ProseMirror .task-item-node > div > p {
+  margin: 0;
+}
+
+.ProseMirror li[data-type="taskItem"][data-checked="true"] > div,
+.ProseMirror .task-item-node[data-checked="true"] > div {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.ProseMirror li[data-type="taskItem"] input[type="checkbox"],
+.ProseMirror .task-item-node input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  min-width: 0;
+  padding: 0;
+  border: 2px solid #3b6978;
+  background: #fff;
+  box-shadow: none;
+  outline: none;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #3b6978;
+  border-radius: 2px;
+}
+
+/* Nested task lists (task item containing another task list) */
+.ProseMirror li[data-type="taskItem"] ul[data-type="taskList"],
+.ProseMirror .task-item-node .task-list-node {
+  margin-top: 4px;
+  padding-left: 1.4em;
+}
+
+/* ── INTEGRATION FIX ─────────────────────────────────────────────
+   Gap that existed before: a task item containing a nested BULLET
+   or ORDERED list (not another task list) had no rule at all, so
+   it fell through to the plain .ProseMirror li > ul rule, which
+   assumes a `display: list-item` parent. Task items are flex
+   containers (`display: flex` above), so a nested bullet list needs
+   its own indent context that accounts for the checkbox + gap
+   instead of the plain list-item padding math. Without this, a
+   bullet list nested inside a task item rendered visually
+   misaligned — indented relative to the wrong edge. */
+.ProseMirror li[data-type="taskItem"] > div > ul:not([data-type="taskList"]),
+.ProseMirror li[data-type="taskItem"] > div > ol,
+.ProseMirror .task-item-node > div > ul:not(.task-list-node),
+.ProseMirror .task-item-node > div > ol {
+  margin-top: 4px;
+  padding-left: 1.4em;
+}
+
+/* ================================================================
+   BUBBLE MENU
+   Tippy.js (Tiptap's BubbleMenu dependency) renders its own
+   positioning wrapper — this just resets any default Tippy theme
+   so our button group's own border/shadow is the only visible
+   chrome, keeping it visually consistent with Toolbar rather than
+   looking like a separate library's default popover.
+   ================================================================ */
+
+.tippy-box[data-theme~="translucent"],
+.tippy-box {
+  background: transparent;
+  box-shadow: none;
+}
+.tippy-box .tippy-content {
+  padding: 0;
+}
+.tippy-arrow {
+  display: none;
+}
+
+/* ================================================================
+   MISC
+   ================================================================ */
+
+.collab-editor-container {
+  position: relative;
 }
 
 .material-symbols-outlined {
@@ -1733,7 +2120,7 @@ button {
   color: var(--text-faint);
   content: attr(data-placeholder);
   float: left;
-} 
+}
 
 .collaboration-cursor__caret {
   border-left: 2px solid currentColor;

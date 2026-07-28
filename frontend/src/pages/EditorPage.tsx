@@ -9,6 +9,7 @@ import CollabEditor from "../components/CollabEditor.tsx";
 import MembersPanel from "../components/MembersPanel";
 import MediaPanel from "../components/MediaPanel";
 import Toolbar from "../components/Toolbar";
+import TaskCreationModal from "../components/TaskCreationModal";
 import { Editor } from "@tiptap/react";
 import "./EditorPage.css";
 
@@ -71,6 +72,7 @@ export default function EditorPage({ docId, onBack }: Props) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [externalTasks, setExternalTasks] = useState<ExternalTask[]>([]);
   const [tasksPanelOpen, setTasksPanelOpen] = useState(false);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
   // FIX: Use state for ydoc so React re-renders CollabEditor with the new
@@ -341,23 +343,20 @@ export default function EditorPage({ docId, onBack }: Props) {
 
   const handleAddExternalTask = () => {
     if (!canEdit) return;
-    const taskText = prompt("Enter task text:");
-    if (taskText === null) return;
-    const trimmed = taskText.trim();
-    if (!trimmed) return;
+    setTaskModalOpen(true);
+  };
+
+  const handleCreateTask = (taskText: string) => {
+    setTaskModalOpen(false);
     setTasksPanelOpen(true);
 
-    // Optimistic local add so the task appears immediately for the creator.
-    // The server will broadcast the real task (with a server-generated id) to
-    // all OTHER clients via "task-added". We replace our temp entry when that
-    // comes back (see the dedup logic in the socket listener above).
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setExternalTasks((prev) => [
       ...prev,
-      { id: tempId, text: trimmed, done: false },
+      { id: tempId, text: taskText, done: false },
     ]);
 
-    socketRef.current?.emit("task-added", { docId, text: trimmed });
+    socketRef.current?.emit("task-added", { docId, text: taskText });
   };
 
   const toggleExternalTask = (taskId: string) => {
@@ -688,6 +687,12 @@ export default function EditorPage({ docId, onBack }: Props) {
           documentTitle={title || "Untitled"}
         />
       )}
+
+      <TaskCreationModal
+        open={taskModalOpen}
+        onClose={() => setTaskModalOpen(false)}
+        onSubmit={handleCreateTask}
+      />
 
       <style>{`
         @keyframes pulse {

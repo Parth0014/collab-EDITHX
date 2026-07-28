@@ -77,6 +77,24 @@ function ToolBtn({
   );
 }
 
+const FONT_SIZES: { label: string; value: string }[] = [
+  { label: "8pt", value: "11px" },
+  { label: "9pt", value: "12px" },
+  { label: "10pt", value: "13px" },
+  { label: "11pt", value: "15px" },
+  { label: "12pt", value: "16px" },
+  { label: "14pt", value: "19px" },
+  { label: "16pt", value: "21px" },
+  { label: "18pt", value: "24px" },
+  { label: "20pt", value: "27px" },
+  { label: "24pt", value: "32px" },
+  { label: "28pt", value: "37px" },
+  { label: "32pt", value: "43px" },
+  { label: "36pt", value: "48px" },
+  { label: "48pt", value: "64px" },
+];
+const DEFAULT_FONT_SIZE = "19px"; // 14pt — matches .ProseMirror base size
+
 export default function Toolbar({
   editor,
   onAddTask,
@@ -87,6 +105,43 @@ export default function Toolbar({
   if (!editor) return null;
 
   const [, forceToolbarRefresh] = React.useReducer((n) => n + 1, 0);
+  const lastSelectionRef = React.useRef<{ from: number; to: number } | null>(
+    null,
+  );
+
+  // ── Live state read straight from the editor — no local mirrors that can
+  // drift. currentFontSize and currentColor are derived on every relevant
+  // editor event, never set-and-forget. ──────────────────────────────────
+  const [currentFontSize, setCurrentFontSize] =
+    React.useState<string>(DEFAULT_FONT_SIZE);
+  const [currentColor, setCurrentColor] = React.useState<string>("#1a1a18");
+
+  React.useEffect(() => {
+    const syncFromSelection = () => {
+      const { from, to } = editor.state.selection;
+      lastSelectionRef.current = { from, to };
+
+      const attrs = editor.getAttributes("textStyle");
+      setCurrentFontSize(attrs.fontSize || DEFAULT_FONT_SIZE);
+      setCurrentColor(attrs.color || "#1a1a18");
+
+      forceToolbarRefresh();
+    };
+
+    syncFromSelection();
+
+    editor.on("selectionUpdate", syncFromSelection);
+    editor.on("transaction", syncFromSelection);
+    editor.on("focus", syncFromSelection);
+    editor.on("blur", syncFromSelection);
+
+    return () => {
+      editor.off("selectionUpdate", syncFromSelection);
+      editor.off("transaction", syncFromSelection);
+      editor.off("focus", syncFromSelection);
+      editor.off("blur", syncFromSelection);
+    };
+  }, [editor]);
 
   const toAbsoluteUrl = (rawUrl: string) => {
     const value = rawUrl.trim();
@@ -97,48 +152,27 @@ export default function Toolbar({
     return `https://${value}`;
   };
 
-  const [currentFontSize, setCurrentFontSize] = React.useState<string>("19px");
-  const lastSelectionRef = React.useRef<{ from: number; to: number } | null>(
-    null,
-  );
-
-  React.useEffect(() => {
-    const syncSelection = () => {
-      const { from, to } = editor.state.selection;
-      lastSelectionRef.current = { from, to };
-      forceToolbarRefresh();
-    };
-    syncSelection();
-
-    const onEditorUpdate = () => {
-      forceToolbarRefresh();
-    };
-
-    editor.on("selectionUpdate", syncSelection);
-    editor.on("transaction", onEditorUpdate);
-    editor.on("focus", onEditorUpdate);
-    editor.on("blur", onEditorUpdate);
-
-    return () => {
-      editor.off("selectionUpdate", syncSelection);
-      editor.off("transaction", onEditorUpdate);
-      editor.off("focus", onEditorUpdate);
-      editor.off("blur", onEditorUpdate);
-    };
-  }, [editor]);
-
+  // ── FIX: uses the extension's own setFontSize command, which always
+  // merges into existing textStyle attrs (see FontSize.addCommands in
+  // CollabEditor.tsx). This is what makes color + font-size coexist
+  // reliably — neither control can stomp the other anymore. ─────────────
   const handleFontSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newSize = e.target.value;
     setCurrentFontSize(newSize);
 
     const chain = editor.chain();
     const lastSelection = lastSelectionRef.current;
-
     if (lastSelection) {
       chain.setTextSelection(lastSelection);
     }
 
-    chain.focus().setMark("textStyle", { fontSize: newSize }).run();
+    (chain as any).focus().setFontSize(newSize).run();
+  };
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    setCurrentColor(newColor);
+    editor.chain().focus().setColor(newColor).run();
   };
 
   const addLink = () => {
@@ -230,9 +264,11 @@ export default function Toolbar({
             cursor: "pointer",
           }}
         >
-          <option value="19px">14pt</option>
-          <option value="24px">18pt</option>
-          <option value="32px">24pt</option>
+          {FONT_SIZES.map((size) => (
+            <option key={size.value} value={size.value}>
+              {size.label}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -428,7 +464,8 @@ export default function Toolbar({
 
       <Sep />
 
-      {/* Text color */}
+      {/* Text color — FIX: value is now controlled and reads live from
+          editor selection, so the swatch always matches the cursor. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span
           style={{
@@ -443,12 +480,10 @@ export default function Toolbar({
         </span>
         <input
           type="color"
-          defaultValue="#1a1a18"
+          value={currentColor}
           title="Text color"
           aria-label="Text color"
-          onChange={(e) =>
-            editor.chain().focus().setColor(e.target.value).run()
-          }
+          onChange={handleColorChange}
           style={{
             width: 22,
             height: 22,
