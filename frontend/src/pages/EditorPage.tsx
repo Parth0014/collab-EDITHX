@@ -81,7 +81,7 @@ export default function EditorPage({ docId, onBack }: Props) {
   const ydocRef = useRef<Y.Doc>(ydoc); // keep a ref in sync for use in callbacks
 
   const editorRef = useRef<Editor | null>(null);
-  const [ydocReady, setYdocReady] = useState(false);
+  const [ydocReady, setYdocReady] = useState(true);
 
   useEffect(() => {
     try {
@@ -122,12 +122,9 @@ export default function EditorPage({ docId, onBack }: Props) {
   // This guarantees the ydoc instance, its update listener, and the socket
   // all reference the same object — no stale closures.
   useEffect(() => {
-    console.log("Initializing editor for docId:", docId);
-
     // 0. Clean up any old socket connection before creating a new one.
     // This prevents cross-tab pollution when multiple tabs are open.
     if (socketRef.current) {
-      console.log("Cleaning up old socket connection");
       socketRef.current.disconnect();
       socketRef.current = null;
     }
@@ -139,7 +136,7 @@ export default function EditorPage({ docId, onBack }: Props) {
     const freshYdoc = new Y.Doc();
     ydocRef.current = freshYdoc;
     setYdoc(freshYdoc);
-    setYdocReady(false);
+    setYdocReady(true);
     setStatus("connecting");
 
     // 2. Wire the ydoc update → socket emit (local edits → broadcast).
@@ -157,13 +154,6 @@ export default function EditorPage({ docId, onBack }: Props) {
     // 3. Connect socket.
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
-
-    // Fallback: if server never sends load-document, show editor anyway (after longer wait).
-    // Increased to 3000ms to account for network latency and server processing time.
-    const readyFallback = window.setTimeout(() => {
-      console.warn("Document load timeout - showing editor with current state");
-      setYdocReady(true);
-    }, 3000);
 
     socket.on("connect", () => {
       setStatus("connected");
@@ -183,13 +173,6 @@ export default function EditorPage({ docId, onBack }: Props) {
           return;
         }
 
-        window.clearTimeout(readyFallback);
-        console.log("Document loaded from server", {
-          hasState: !!state,
-          taskCount: tasks?.length || 0,
-          forDocId: docId,
-        });
-
         if (state) {
           try {
             // Apply saved server state into the fresh ydoc.
@@ -198,9 +181,8 @@ export default function EditorPage({ docId, onBack }: Props) {
               decodeBase64ToUint8Array(state),
               REMOTE_ORIGIN,
             );
-            console.log("Document state applied successfully");
-          } catch (error) {
-            console.error("Failed to apply document state:", error);
+          } catch {
+            // Ignore malformed document state payloads.
           }
         }
 
@@ -226,7 +208,6 @@ export default function EditorPage({ docId, onBack }: Props) {
     socket.on("receive-changes", (base64Update: string) => {
       // Ignore if this effect has been replaced by a newer one (docId changed)
       if (!isActive) {
-        console.log("Ignoring receive-changes for stale effect");
         return;
       }
 
@@ -238,8 +219,8 @@ export default function EditorPage({ docId, onBack }: Props) {
           decodeBase64ToUint8Array(base64Update),
           REMOTE_ORIGIN,
         );
-      } catch (error) {
-        console.error("Failed to apply remote changes:", error);
+      } catch {
+        // Ignore malformed remote updates.
       }
     });
 
@@ -302,7 +283,6 @@ export default function EditorPage({ docId, onBack }: Props) {
     // 4. Cleanup: disconnect socket and destroy ydoc.
     return () => {
       isActive = false; // Mark this effect as no longer active, ignore future events
-      window.clearTimeout(readyFallback);
       freshYdoc.off("update", handleYdocUpdate);
       freshYdoc.destroy();
       socket.disconnect();
@@ -596,7 +576,8 @@ export default function EditorPage({ docId, onBack }: Props) {
             <div
               key={u.collabId}
               title={u.username}
-              className={`editor-avatar ${getAvatarToneClass(u.collabId)} ${i === 0 ? "" : "editor-avatar-overlap"}`}
+              className={`editor-avatar ${i === 0 ? "" : "editor-avatar-overlap"}`}
+              style={{ background: u.color || "#3B6978" }}
             >
               {u.username[0].toUpperCase()}
             </div>
@@ -788,7 +769,9 @@ export default function EditorPage({ docId, onBack }: Props) {
                     docId={docId}
                     canEdit={canEdit}
                     myColor={myColor}
+                    myCollabId={user?.collabId || ""}
                     username={user?.username || "Anonymous"}
+                    roomUsers={roomUsers}
                     editorRef={editorRef}
                     mediaAssets={doc?.mediaAssets || []}
                   />

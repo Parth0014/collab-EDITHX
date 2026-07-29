@@ -255,8 +255,12 @@ body {
 /* ── Collaboration cursors ───────────────────────────────────── */
 
 .collaboration-cursor__caret {
-  border-left: 2px solid currentColor;
-  border-right: 2px solid currentColor;
+  display: inline-block;
+  min-height: 1.25em;
+  border-left: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  border-top: 0;
+  border-bottom: 0;
   margin-left: -1px;
   margin-right: -1px;
   pointer-events: none !important;
@@ -265,6 +269,8 @@ body {
   position: relative;
   word-break: normal;
   cursor: default;
+  overflow: visible;
+  z-index: 1;
 }
 
 .collaboration-cursor__label {

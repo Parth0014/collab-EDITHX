@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, MutableRefObject } from "react";
+import React, { useEffect, useRef, useState, MutableRefObject } from "react";
 import {
   useEditor,
   EditorContent,
@@ -31,6 +31,7 @@ import { Socket } from "socket.io-client";
 import { MediaAsset } from "../types";
 import ResizableImageView from "./ResizableImageView";
 import EditorBubbleMenu from "./EditorBubbleMenu";
+import LinkCreationModal from "./LinkCreationModal";
 
 const FontSize = Extension.create({
   name: "fontSize",
@@ -117,8 +118,34 @@ function toAbsoluteUrl(rawHref: string): string {
 // ── Cursor renderer ─────────────────────────────────────────────────────────
 // Unchanged from the working version — pointer-events:none on both the caret
 // and label is the fix for "can't select through cursors."
-function renderCursor(user: Record<string, any>): HTMLElement {
-  const color: string = user.color ?? "#3b6978";
+const CURSOR_COLORS = [
+  "#3b6978",
+  "#21515f",
+  "#e03131",
+  "#f08c00",
+  "#7048e8",
+  "#0c8599",
+];
+
+function getColorFromSeed(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return CURSOR_COLORS[hash % CURSOR_COLORS.length];
+}
+
+function renderCursor(
+  user: Record<string, any>,
+  roomUsers?: { collabId: string; color: string }[],
+): HTMLElement {
+  const serverColor = roomUsers?.find(
+    (r) => r.collabId === user.collabId,
+  )?.color;
+  const color: string =
+    serverColor ??
+    user.color ??
+    getColorFromSeed(user.collabId ?? user.name ?? "anon");
   const name: string = user.name ?? "?";
 
   const label = document.createElement("span");
@@ -147,7 +174,11 @@ function renderCursor(user: Record<string, any>): HTMLElement {
   const caret = document.createElement("span");
   caret.classList.add("collaboration-cursor__caret");
   caret.style.cssText = [
-    `border-left: 2px solid ${color}`,
+    `background-color: ${color}`,
+    `border-color: ${color}`,
+    "display: inline-block",
+    "width: 1px",
+    "height: 1.4em",
     "position: relative",
     "margin-left: -1px",
     "margin-right: -1px",
@@ -155,6 +186,8 @@ function renderCursor(user: Record<string, any>): HTMLElement {
     "pointer-events: none",
     "user-select: none",
     "-webkit-user-select: none",
+    "overflow: visible",
+    "z-index: 1",
   ].join(";");
 
   caret.appendChild(label);
@@ -168,9 +201,16 @@ interface Props {
   docId: string;
   canEdit: boolean;
   myColor: string;
+  myCollabId: string;
   username: string;
   editorRef: MutableRefObject<Editor | null>;
   mediaAssets: MediaAsset[];
+  roomUsers?: {
+    username: string;
+    collabId: string;
+    color: string;
+    userId: string;
+  }[];
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -180,14 +220,70 @@ export default function CollabEditor({
   docId,
   canEdit,
   myColor,
+  myCollabId,
   username,
   editorRef,
   mediaAssets,
+  roomUsers,
 }: Props) {
-  const awarenessRef = useRef<Awareness>(new Awareness(ydoc));
+  const roomUsersRef = useRef<
+    { collabId: string; color: string }[] | undefined
+  >(undefined);
+  // keep a ref that EditorPage will update via prop (passed below)
+  useEffect(() => {
+    try {
+      roomUsersRef.current = (roomUsers || []).map((r) => ({
+        collabId: r.collabId,
+        color: r.color,
+      }));
+    } catch {}
+  }, [roomUsers]);
+
+  const awarenessRef = useRef<Awareness | null>(null);
+  if (!awarenessRef.current) {
+    awarenessRef.current = new Awareness(ydoc);
+  }
   const awareness = awarenessRef.current;
+  // When server `roomUsers` arrives, align our local awareness color and
+  // broadcast the update so other participants immediately see the server
+  // color for our cursor.
+  useEffect(() => {
+    if (!socket) return;
+    try {
+      const serverEntry = (roomUsers || []).find(
+        (r) => r.collabId === myCollabId,
+      );
+      if (!serverEntry) return;
+      const local = (awareness.getLocalState() as any) || {};
+      const localUser = local.user || {};
+      if (localUser.color === serverEntry.color) return;
+
+      awareness.setLocalStateField("user", {
+        name: username,
+        color: serverEntry.color,
+        collabId: myCollabId,
+      });
+
+      const clientId = (awareness as any).clientID as number;
+      const update = encodeAwarenessUpdate(awareness, [clientId]);
+      socket.emit("awareness-update", {
+        docId,
+        clientIds: [clientId],
+        update: encodeBytesToBase64(update),
+      });
+    } catch (e) {}
+  }, [roomUsers, myCollabId, username, socket, awareness, docId]);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkText, setLinkText] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
 
   // ── Awareness sync (unchanged — this was never the buggy part) ───────────
+  useEffect(() => {
+    return () => {
+      awareness.setLocalState(null);
+    };
+  }, [awareness]);
+
   useEffect(() => {
     if (!socket) return;
 
@@ -229,14 +325,39 @@ export default function CollabEditor({
       removeAwarenessStates(awareness, clientIds, "remote-awareness");
     };
 
+    const onRequestAwareness = ({
+      docId: requestedDocId,
+    }: {
+      docId: string;
+    }) => {
+      if (requestedDocId !== docId) return;
+      let clientIds = Array.from(awareness.getStates().keys());
+      const localClientId = (awareness as any).clientID as number;
+      // Ensure we include our own client id so the joining client receives at
+      // least our local presence even if the states map is currently empty.
+      if (!clientIds.includes(localClientId))
+        clientIds = [...clientIds, localClientId];
+
+      if (clientIds.length === 0) return;
+
+      const awarenessUpdate = encodeAwarenessUpdate(awareness, clientIds);
+      socket.emit("awareness-update", {
+        docId,
+        clientIds,
+        update: encodeBytesToBase64(awarenessUpdate),
+      });
+    };
+
     awareness.on("update", onAwarenessUpdate);
     socket.on("awareness-update", onRemoteAwarenessUpdate);
     socket.on("awareness-remove", onRemoteAwarenessRemove);
+    socket.on("request-awareness", onRequestAwareness);
 
     return () => {
       awareness.off("update", onAwarenessUpdate);
       socket.off("awareness-update", onRemoteAwarenessUpdate);
       socket.off("awareness-remove", onRemoteAwarenessRemove);
+      socket.off("request-awareness", onRequestAwareness);
     };
   }, [awareness, docId, socket]);
 
@@ -275,8 +396,8 @@ export default function CollabEditor({
 
       CollaborationCursor.configure({
         provider: { awareness } as any,
-        user: { name: username, color: myColor },
-        render: renderCursor,
+        user: { name: username, color: myColor, collabId: myCollabId },
+        render: (user) => renderCursor(user, roomUsersRef.current),
       }),
 
       Placeholder.configure({
@@ -344,6 +465,19 @@ export default function CollabEditor({
     },
   });
 
+  useEffect(() => {
+    if (!editor) return;
+
+    const forceCursorRedraw = () => {
+      editor.view.dispatch(editor.view.state.tr);
+    };
+
+    awareness.on("update", forceCursorRedraw);
+    return () => {
+      awareness.off("update", forceCursorRedraw);
+    };
+  }, [editor, awareness]);
+
   // ── Sync editorRef ────────────────────────────────────────────────────────
   useEffect(() => {
     editorRef.current = editor;
@@ -359,21 +493,108 @@ export default function CollabEditor({
 
   // ── Sync awareness user ───────────────────────────────────────────────────
   useEffect(() => {
-    awareness.setLocalStateField("user", { name: username, color: myColor });
-  }, [awareness, myColor, username]);
+    awareness.setLocalStateField("user", {
+      name: username,
+      color: myColor,
+      collabId: myCollabId,
+    });
+    // ensure the awareness local state color matches server room user color if provided
+    try {
+      const local = awareness.getLocalState() || {};
+      if (!local.user || local.user.color !== myColor) {
+        awareness.setLocalStateField("user", {
+          ...(local.user || {}),
+          name: username,
+          color: myColor,
+          collabId: myCollabId,
+        });
+      }
+    } catch {}
+  }, [awareness, myColor, myCollabId, username]);
+
+  // Immediately broadcast our local awareness once we've set it so other
+  // participants (including newcomers) receive our presence without waiting
+  // for a selection change. This helps avoid the "no remote cursors until
+  // someone moves" problem.
+  useEffect(() => {
+    if (!socket) return;
+    try {
+      const clientId = (awareness as any).clientID as number;
+      const clientIds = [clientId];
+      const update = encodeAwarenessUpdate(awareness, clientIds);
+      socket.emit("awareness-update", {
+        docId,
+        clientIds,
+        update: encodeBytesToBase64(update),
+      });
+    } catch (e) {}
+  }, [socket, awareness, docId]);
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       awareness.setLocalState(null);
-      awareness.destroy();
     };
   }, [awareness]);
 
+  const openLinkModal = () => {
+    if (!editor) return;
+
+    const { from, to } = editor.state.selection;
+    const selectedText = editor.state.doc.textBetween(from, to, " ");
+    const activeLink = editor.isActive("link");
+    const activeUrl = activeLink ? editor.getAttributes("link").href || "" : "";
+
+    setLinkText(selectedText);
+    setLinkUrl(activeUrl);
+    setLinkModalOpen(true);
+  };
+
+  const handleLinkSubmit = (textValue: string, urlValue: string) => {
+    if (!editor) return;
+    const finalUrl = toAbsoluteUrl(urlValue);
+    const { from, to } = editor.state.selection;
+    const selectedText = editor.state.doc.textBetween(from, to, " ");
+
+    if (textValue.trim() === selectedText.trim()) {
+      editor.chain().focus().setLink({ href: finalUrl }).run();
+    } else {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt({ from, to }, [
+          {
+            type: "text",
+            text: textValue.trim(),
+            marks: [{ type: "link", attrs: { href: finalUrl } }],
+          },
+        ])
+        .run();
+    }
+
+    setLinkModalOpen(false);
+  };
+
+  const handleLinkUnlink = () => {
+    if (!editor) return;
+    editor.chain().focus().unsetLink().run();
+    setLinkModalOpen(false);
+  };
+
   return (
     <div className="collab-editor-container">
-      {editor && <EditorBubbleMenu editor={editor} />}
+      {editor && (
+        <EditorBubbleMenu editor={editor} onLinkClick={openLinkModal} />
+      )}
       <EditorContent editor={editor} />
+      <LinkCreationModal
+        open={linkModalOpen}
+        initialText={linkText}
+        initialUrl={linkUrl}
+        onClose={() => setLinkModalOpen(false)}
+        onSubmit={handleLinkSubmit}
+        onUnlink={handleLinkUnlink}
+      />
     </div>
   );
 }

@@ -53,14 +53,15 @@ function BubbleBtn({
   );
 }
 
-export default function EditorBubbleMenu({ editor }: { editor: Editor }) {
+export default function EditorBubbleMenu({
+  editor,
+  onLinkClick,
+}: {
+  editor: Editor;
+  onLinkClick: () => void;
+}) {
   const addLink = () => {
-    const url = prompt("Enter URL:");
-    if (!url) return;
-    const value = url.trim();
-    if (!value) return;
-    const finalUrl = /^https?:\/\//i.test(value) ? value : `https://${value}`;
-    editor.chain().focus().setLink({ href: finalUrl }).run();
+    onLinkClick();
   };
 
   return (

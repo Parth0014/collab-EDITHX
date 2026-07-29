@@ -10,6 +10,9 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 // In-memory Yjs documents per docId
 const ydocs = new Map<string, Y.Doc>();
 const socketAwarenessClients = new Map<string, Set<number>>();
+// Cache the most recent awareness update (base64) per document so joiners
+// can be sent a snapshot immediately on connect.
+const awarenessSnapshots = new Map<string, string>();
 
 // Track users per room: docId -> Set<{ socketId, username, collabId, color }>
 const roomUsers = new Map<
@@ -20,22 +23,21 @@ const roomUsers = new Map<
   >
 >();
 
-const CURSOR_COLORS = [
-  "#3b6978", // tone-1
-  "#21515f", // tone-2
-  "#e03131", // tone-3
-  "#f08c00", // tone-4
-  "#7048e8", // tone-5
-  "#0c8599", // tone-6
-];
-
 function getYDoc(docId: string): Y.Doc {
   if (!ydocs.has(docId)) ydocs.set(docId, new Y.Doc());
   return ydocs.get(docId)!;
 }
 
-function getUserColor(index: number): string {
-  return CURSOR_COLORS[index % CURSOR_COLORS.length];
+function getUserColor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+
+  const hue = hash % 360;
+  const saturation = 65;
+  const lightness = 55;
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
 export function setupSocket(io: Server) {
@@ -92,11 +94,10 @@ export function setupSocket(io: Server) {
         // Track user in room
         if (!roomUsers.has(docId)) roomUsers.set(docId, new Map());
         const roomMap = roomUsers.get(docId)!;
-        const userIndex = roomMap.size;
         roomMap.set(socket.id, {
           username: user.username,
           collabId: user.collabId,
-          color: getUserColor(userIndex),
+          color: getUserColor(user.userId),
           userId: user.userId,
         });
 
@@ -121,7 +122,18 @@ export function setupSocket(io: Server) {
         // Broadcast updated user list
         io.to(docId).emit("room-users", Array.from(roomMap.values()));
 
-        console.log(`${user.username} joined doc ${docId}`);
+        // If we have a cached awareness snapshot for this doc, send it to the
+        // joining socket so they immediately receive current presence.
+        if (awarenessSnapshots.has(docId)) {
+          try {
+            const cached = awarenessSnapshots.get(docId)!;
+            socket.emit("awareness-update", { update: cached });
+          } catch {}
+        }
+
+        // Ask existing collaborators to re-broadcast their awareness state so
+        // the joining client receives the current presence map immediately.
+        socket.to(docId).emit("request-awareness", { docId });
       } catch (err) {
         socket.emit("error", "Failed to join document");
       }
@@ -178,6 +190,10 @@ export function setupSocket(io: Server) {
         clientIds.forEach((id) => tracked.add(id));
 
         io.to(docId).emit("awareness-update", { update });
+        // Cache latest awareness update for future joiners.
+        try {
+          awarenessSnapshots.set(docId, update);
+        } catch {}
       },
     );
 

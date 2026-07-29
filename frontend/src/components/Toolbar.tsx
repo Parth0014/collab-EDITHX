@@ -1,10 +1,5 @@
 import React from "react";
 import { Editor } from "@tiptap/react";
-import {
-  exportToDOCX,
-  exportToPDF,
-  getEditorHTML,
-} from "../utils/documentExport";
 
 interface Props {
   editor: Editor;
@@ -173,16 +168,6 @@ export default function Toolbar({
     const newColor = e.target.value;
     setCurrentColor(newColor);
     editor.chain().focus().setColor(newColor).run();
-  };
-
-  const addLink = () => {
-    const url = prompt("Enter URL:");
-    if (!url) return;
-
-    const finalUrl = toAbsoluteUrl(url);
-    if (!finalUrl) return;
-
-    editor.chain().focus().setLink({ href: finalUrl }).run();
   };
 
   const addTask = () => {
@@ -432,9 +417,6 @@ export default function Toolbar({
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
       >
         {"</>"}
-      </ToolBtn>
-      <ToolBtn title="Link" active={editor.isActive("link")} onClick={addLink}>
-        Link
       </ToolBtn>
       <ToolBtn
         title="Horizontal rule"
