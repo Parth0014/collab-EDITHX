@@ -134,6 +134,12 @@ router.post("/:docId/invite", async (req: AuthRequest, res: Response) => {
     });
     await doc.save();
 
+    emitInvitationUpdate(invitee._id.toString(), {
+      type: "invitation-created",
+      docId: doc.docId,
+      title: doc.title,
+    });
+
     res.json({ ok: true, message: `Invitation sent to ${invitee.username}` });
   } catch {
     res.status(500).json({ error: "Server error" });
@@ -198,6 +204,11 @@ router.post(
       }
 
       await doc.save();
+      emitInvitationUpdate(req.user!.userId, {
+        type:
+          action === "accept" ? "invitation-accepted" : "invitation-rejected",
+        docId: doc.docId,
+      });
       res.json({ ok: true, action });
     } catch {
       res.status(500).json({ error: "Server error" });

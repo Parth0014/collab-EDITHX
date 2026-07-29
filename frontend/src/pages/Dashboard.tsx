@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { io, Socket } from "socket.io-client";
 import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import { usePopup } from "../context/PopupContext";
@@ -8,10 +9,13 @@ interface Props {
   onOpenDoc: (docId: string) => void;
 }
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+
 export default function Dashboard({ onOpenDoc }: Props) {
   const { showAlert, showConfirm } = usePopup();
   const {
     user,
+    token,
     logout,
     login,
     pendingLoginRequest,
@@ -35,6 +39,7 @@ export default function Dashboard({ onOpenDoc }: Props) {
     }
   });
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -64,6 +69,23 @@ export default function Dashboard({ onOpenDoc }: Props) {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  useEffect(() => {
+    if (!token || !user?.id) return;
+
+    const socket = io(SOCKET_URL, { auth: { token } });
+    socketRef.current = socket;
+
+    socket.on("invitation-updated", () => {
+      void fetchAll();
+    });
+
+    return () => {
+      socket.off("invitation-updated");
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [fetchAll, token, user?.id]);
 
   // Clear ghost notifications from localStorage on mount
   useEffect(() => {

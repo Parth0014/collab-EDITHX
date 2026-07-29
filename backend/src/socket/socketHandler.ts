@@ -10,6 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 // In-memory Yjs documents per docId
 const ydocs = new Map<string, Y.Doc>();
 const socketAwarenessClients = new Map<string, Set<number>>();
+const connectedUsers = new Map<string, Set<string>>();
+let ioServer: Server | null = null;
 // Cache the most recent awareness update (base64) per document so joiners
 // can be sent a snapshot immediately on connect.
 const awarenessSnapshots = new Map<string, string>();
@@ -40,7 +42,21 @@ function getUserColor(seed: string): string {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
+export function emitInvitationUpdate(
+  userId: string,
+  payload: Record<string, unknown>,
+) {
+  if (!ioServer) return;
+
+  const sockets = connectedUsers.get(userId);
+  if (!sockets || sockets.size === 0) return;
+
+  ioServer.to(Array.from(sockets)).emit("invitation-updated", payload);
+}
+
 export function setupSocket(io: Server) {
+  ioServer = io;
+
   // Auth middleware for socket
   io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -75,6 +91,11 @@ export function setupSocket(io: Server) {
 
   io.on("connection", (socket: Socket) => {
     const user = (socket as any).user as AuthPayload;
+
+    if (!connectedUsers.has(user.userId)) {
+      connectedUsers.set(user.userId, new Set());
+    }
+    connectedUsers.get(user.userId)!.add(socket.id);
 
     // Join a document room
     socket.on("join-document", async ({ docId }: { docId: string }) => {
@@ -280,6 +301,14 @@ export function setupSocket(io: Server) {
         socketAwarenessClients.get(socket.id) || [],
       );
       socketAwarenessClients.delete(socket.id);
+
+      const userSockets = connectedUsers.get(user.userId);
+      if (userSockets) {
+        userSockets.delete(socket.id);
+        if (userSockets.size === 0) {
+          connectedUsers.delete(user.userId);
+        }
+      }
 
       // Remove from all rooms
       roomUsers.forEach((roomMap, docId) => {
