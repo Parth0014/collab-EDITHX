@@ -822,9 +822,15 @@ button {
     margin-top: 0;
   }
 
-  /* Hide collab ID box in mobile sidebar */
   .dashboard-collab-id-box {
-    display: none;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .dashboard-collab-id-value {
+    font-size: 11px;
+    line-height: 1.4;
+    word-break: break-word;
   }
 
   /* Buttons: full width */

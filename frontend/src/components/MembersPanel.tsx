@@ -225,7 +225,7 @@ export default function MembersPanel({
                 </div>
 
                 {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
                   <div
                     style={{
                       fontFamily: "Space Grotesk, sans-serif",
@@ -246,7 +246,10 @@ export default function MembersPanel({
                       color: "#94A3B8",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      whiteSpace: "normal",
+                      wordBreak: "break-all",
+                      lineHeight: 1.4,
+                      marginTop: 2,
                     }}
                   >
                     {c.collabId}
@@ -261,6 +264,7 @@ export default function MembersPanel({
                       gap: 4,
                       alignItems: "center",
                       flexShrink: 0,
+                      marginLeft: 6,
                     }}
                   >
                     <select
@@ -273,6 +277,7 @@ export default function MembersPanel({
                         fontSize: 10,
                         padding: "2px 4px",
                         height: 22,
+                        minWidth: 70,
                         width: "auto",
                         fontFamily: "Space Grotesk, sans-serif",
                         fontWeight: 700,
