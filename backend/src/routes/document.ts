@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import DocumentModel from "../models/Document";
 import UserModel from "../models/User";
 import { authMiddleware, AuthRequest } from "../middleware/auth";
+import { emitInvitationUpdate } from "../socket/socketHandler";
 
 const router = Router();
 router.use(authMiddleware);
