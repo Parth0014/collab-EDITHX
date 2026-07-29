@@ -115,6 +115,13 @@ export function setupSocket(io: Server) {
         // Track user in room
         if (!roomUsers.has(docId)) roomUsers.set(docId, new Map());
         const roomMap = roomUsers.get(docId)!;
+        for (const [existingSocketId, existingUser] of Array.from(
+          roomMap.entries(),
+        )) {
+          if (existingUser.userId === user.userId) {
+            roomMap.delete(existingSocketId);
+          }
+        }
         roomMap.set(socket.id, {
           username: user.username,
           collabId: user.collabId,

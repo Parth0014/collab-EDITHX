@@ -226,7 +226,13 @@ export default function EditorPage({ docId, onBack }: Props) {
 
     socket.on("room-users", (users: RoomUser[]) => {
       if (!isActive) return;
-      setRoomUsers(users);
+      const deduped = users.reduce<RoomUser[]>((acc, userEntry) => {
+        if (!acc.some((entry) => entry.userId === userEntry.userId)) {
+          acc.push(userEntry);
+        }
+        return acc;
+      }, []);
+      setRoomUsers(deduped);
     });
 
     socket.on("title-changed", (newTitle: string) => {
